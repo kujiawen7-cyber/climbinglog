@@ -1,0 +1,2592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>攀岩日志 · Rock Log</title>
+<meta name="description" content="个人攀岩训练日志：记录每次攀爬、装备成本核算、数据看板与进阶追踪">
+<style>
+/* ============ 攀岩日志 Web · 全局样式 ============ */
+:root {
+  --brand: #2196F3;         /* 岩壁橙 */
+  --brand-dark: #D24A1F;
+  --brand-light: #FFE8DC;
+  --blue: #2F6FED;
+  --blue-light: #E5EEFF;
+  --green: #2FA17E;
+  --green-light: #D9F2E6;
+  --rock: #2B2B34;          /* 标题/正文 */
+  --rock-2: #5A5A63;        /* 次要文字 */
+  --muted: #8C8C86;
+  --bg: #F6F5F2;
+  --card: #FFFFFF;
+  --line: #ECE9E3;
+  --danger: #C0524A;
+  --shadow: 0 4px 16px rgba(58,58,64,.06);
+  --radius: 16px;
+  --sidebar-w: 224px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", sans-serif;
+  background: var(--bg);
+  color: var(--rock);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--blue); text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; font-size: 15px; color: var(--rock); }
+
+/* ---------- 布局 ---------- */
+.sidebar {
+  position: fixed; inset: 0 auto 0 0; width: var(--sidebar-w);
+  background: #1F1F27; color: #D8D8DE;
+  display: flex; flex-direction: column;
+  padding: 20px 16px; z-index: 20;
+}
+.main { margin-left: var(--sidebar-w); min-height: 100vh; display: flex; flex-direction: column; }
+.main-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 22px 28px; background: var(--bg);
+  position: sticky; top: 0; z-index: 10;
+}
+.head-title h1 { font-size: 22px; font-weight: 700; }
+.head-sub { font-size: 13px; color: var(--muted); }
+.head-actions { display: flex; gap: 10px; }
+.page-body { padding: 8px 28px 48px; max-width: 1120px; width: 100%; margin: 0 auto; }
+
+/* ---------- 侧边栏 ---------- */
+.brand { display: flex; align-items: center; gap: 10px; padding: 6px 6px 22px; }
+.brand-logo { font-size: 26px; }
+.brand-name { font-size: 19px; font-weight: 800; letter-spacing: .5px; }
+.side-nav { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 14px; border-radius: 12px;
+  color: #A9A9B3; font-size: 15px; cursor: pointer;
+  background: none; border: none; text-align: left; width: 100%;
+  transition: background .15s, color .15s;
+}
+.nav-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+.nav-item.active { background: var(--brand); color: #fff; font-weight: 600; }
+.nav-ico { width: 20px; text-align: center; }
+.side-foot { padding-top: 14px; border-top: 1px solid rgba(255,255,255,.08); }
+.side-tip { font-size: 11px; color: #6C6C78; text-align: center; margin-top: 10px; }
+
+/* ---------- 底部导航（移动端） ---------- */
+.bottom-nav {
+  display: none; position: fixed; left: 0; right: 0; bottom: 0;
+  background: #fff; border-top: 1px solid var(--line);
+  z-index: 20; padding-bottom: env(safe-area-inset-bottom);
+}
+.bn-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 8px 0 6px; font-size: 11px; color: var(--muted); cursor: pointer;
+  background: none; border: none;
+}
+.bn-item.active { color: var(--brand); font-weight: 600; }
+.bn-ico { font-size: 19px; }
+
+/* ---------- 通用组件 ---------- */
+.card {
+  background: var(--card); border-radius: var(--radius);
+  padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow);
+}
+.card-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.card-title .sub { font-size: 12px; color: var(--muted); font-weight: 400; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: none; border-radius: 12px; padding: 10px 18px;
+  font-size: 14px; font-weight: 600; transition: transform .1s, opacity .15s;
+}
+.btn:active { transform: scale(.97); }
+.btn-primary { background: var(--brand); color: #fff; }
+.btn-primary:hover { background: var(--brand-dark); }
+.btn-ghost { background: #fff; color: var(--brand); border: 1.5px solid var(--brand); }
+.btn-ghost:hover { background: var(--brand-light); }
+.btn-blue { background: var(--blue); color: #fff; }
+.btn-soft { background: #F1EFEA; color: var(--rock); }
+.btn-danger-soft { background: #FCEAE7; color: var(--danger); }
+.btn-sm { padding: 6px 12px; font-size: 13px; border-radius: 10px; }
+.btn-block { width: 100%; }
+.w-full { width: 100%; }
+.link { color: var(--blue); cursor: pointer; font-size: 13px; background: none; border: none; }
+.link-danger { color: var(--danger); }
+.muted { color: var(--muted); }
+.tiny { font-size: 12px; }
+.t-bold { font-weight: 700; }
+.row { display: flex; gap: 10px; align-items: center; }
+.row-between { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.wrap { flex-wrap: wrap; }
+.gap-8 { gap: 8px; }
+.mt-8 { margin-top: 8px; } .mt-12 { margin-top: 12px; } .mt-16 { margin-top: 16px; } .mt-20 { margin-top: 20px; }
+.mb-8 { margin-bottom: 8px; } .mb-12 { margin-bottom: 12px; } .mb-16 { margin-bottom: 16px; }
+
+.tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+}
+.tag-brand { background: var(--brand-light); color: var(--brand); }
+.tag-blue { background: var(--blue-light); color: var(--blue); }
+.tag-green { background: var(--green-light); color: var(--green); }
+.tag-gray { background: #F1EFEA; color: var(--muted); }
+.tag-red { background: #FCEAE7; color: var(--danger); }
+
+.grid { display: grid; gap: 16px; }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+
+.stat-card { text-align: left; }
+.stat-num { font-size: 32px; font-weight: 800; line-height: 1.2; }
+.stat-label { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+.progress { height: 8px; background: #F1EFEA; border-radius: 999px; overflow: hidden; }
+.progress > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--brand), #FFA25E); }
+
+.list-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 4px; border-bottom: 1px solid var(--line);
+}
+.list-item:last-child { border-bottom: none; }
+.list-item .grow { flex: 1; min-width: 0; }
+
+.empty {
+  text-align: center; padding: 48px 20px; color: var(--muted);
+}
+.empty .ico { font-size: 44px; }
+
+/* 表格 */
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tbl th { text-align: left; color: var(--muted); font-weight: 600; padding: 8px 10px; border-bottom: 2px solid var(--line); font-size: 13px; }
+.tbl td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.tbl tr:hover td { background: #FAF9F7; }
+
+/* 表单 */
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--rock-2); }
+.field .req { color: var(--danger); }
+.input, .select, .textarea {
+  width: 100%; border: 1.5px solid #E3DFD7; border-radius: 10px;
+  padding: 10px 12px; background: #fff; outline: none; transition: border .15s;
+}
+.input:focus, .select:focus, .textarea:focus { border-color: var(--brand); }
+.textarea { min-height: 80px; resize: vertical; }
+.input-group { display: flex; gap: 8px; }
+
+/* 分段器 */
+.seg { display: flex; background: #F1EFEA; border-radius: 12px; padding: 3px; gap: 3px; }
+.seg-item {
+  flex: 1; text-align: center; padding: 8px 6px; border-radius: 9px;
+  font-size: 13px; font-weight: 600; color: var(--rock-2); background: none; border: none;
+}
+.seg-item.active { background: #fff; color: var(--brand); box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+
+/* chips */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 6px 14px; border-radius: 999px; background: #F1EFEA;
+  font-size: 13px; cursor: pointer; border: none; color: var(--rock);
+  transition: all .12s;
+}
+.chip.active { background: var(--brand-light); color: var(--brand); font-weight: 600; }
+.chip-blue.active { background: var(--blue-light); color: var(--blue); }
+
+/* 进度/成本条 */
+.cost-bar { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; }
+
+/* ---------- 弹层 ---------- */
+.modal-mask {
+  position: fixed; inset: 0; background: rgba(0,0,0,.48);
+  display: flex; align-items: flex-end; justify-content: center;
+  z-index: 100; padding: 0;
+}
+.modal {
+  background: #fff; border-radius: 20px 20px 0 0;
+  width: 100%; max-width: 640px; max-height: 92vh;
+  display: flex; flex-direction: column;
+  animation: slideUp .22s ease;
+}
+@keyframes slideUp { from { transform: translateY(30px); opacity: .6; } to { transform: none; opacity: 1; } }
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px 12px; border-bottom: 1px solid var(--line);
+}
+.modal-head h3 { font-size: 17px; }
+.modal-close { background: none; border: none; font-size: 22px; color: var(--muted); cursor: pointer; }
+.modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+.modal-foot { padding: 12px 20px 18px; border-top: 1px solid var(--line); display: flex; gap: 10px; justify-content: flex-end; }
+.modal-sm .modal { max-width: 460px; }
+.modal-lg .modal { max-width: 860px; }
+
+/* 向导 step 指示 */
+.steps { display: flex; gap: 6px; margin-bottom: 16px; }
+.step-dot { flex: 1; height: 5px; border-radius: 999px; background: #F1EFEA; }
+.step-dot.active { background: var(--brand); }
+.step-dot.done { background: var(--blue); }
+
+/* 岩馆选择卡片 */
+.gym-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.gym-card {
+  border: 2px solid var(--line); border-radius: 14px; padding: 14px;
+  cursor: pointer; transition: all .12s; background: #fff;
+}
+.gym-card:hover { border-color: var(--brand); }
+.gym-card.selected { border-color: var(--brand); background: var(--brand-light); }
+.gym-card .g-name { font-weight: 700; }
+.gym-card .g-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+/* 线路编辑条目 */
+.route-edit {
+  border: 1.5px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px;
+  background: #FCFBF9; position: relative;
+}
+.route-edit .re-head { display: flex; gap: 8px; flex-wrap: wrap; }
+.route-edit input, .route-edit select { padding: 7px 10px; font-size: 13px; }
+.re-grade { width: 90px; } .re-color { width: 70px; } .re-attempt { width: 64px; }
+.re-del { position: absolute; top: 8px; right: 8px; }
+
+/* 统计 */
+.chart-box { width: 100%; overflow-x: auto; }
+.chart-svg { display: block; width: 100%; height: auto; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--rock-2); margin-top: 6px; }
+.legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
+
+/* 徽章 */
+.badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+.badge-card {
+  border: 1.5px solid var(--line); border-radius: 14px; padding: 14px; text-align: center;
+  background: #fff;
+}
+.badge-card.locked { opacity: .4; filter: grayscale(1); }
+.badge-card .b-ico { font-size: 32px; }
+.badge-card .b-name { font-weight: 700; font-size: 14px; margin-top: 6px; }
+.badge-card .b-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* 时间轴 */
+.timeline { position: relative; padding-left: 22px; }
+.timeline::before { content: ""; position: absolute; left: 7px; top: 6px; bottom: 6px; width: 2px; background: var(--line); }
+.tl-item { position: relative; padding-bottom: 16px; }
+.tl-item::before {
+  content: ""; position: absolute; left: -21px; top: 5px;
+  width: 12px; height: 12px; border-radius: 50%; background: var(--brand);
+  border: 3px solid var(--brand-light);
+}
+.tl-date { font-size: 12px; color: var(--muted); }
+.tl-title { font-weight: 700; }
+
+/* 装备卡 */
+.gear-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.gear-card { border: 1.5px solid var(--line); border-radius: 14px; padding: 14px; background: #fff; }
+.gear-card .g-name { font-weight: 700; font-size: 15px; }
+.gear-card .g-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* Toast */
+#toastWrap { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); z-index: 300; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.toast {
+  background: #2B2B34; color: #fff; padding: 10px 20px; border-radius: 999px;
+  font-size: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.18); animation: toastIn .2s ease;
+  max-width: 86vw;
+}
+@keyframes toastIn { from { transform: translateY(-10px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* 海报画布隐藏 */
+#posterCanvas { position: fixed; left: -9999px; top: -9999px; }
+
+/* 搜索框 */
+.search-box { display: flex; align-items: center; gap: 8px; background: #fff; border: 1.5px solid #E3DFD7; border-radius: 12px; padding: 8px 12px; flex: 1; min-width: 160px; }
+.search-box input { border: none; outline: none; background: none; flex: 1; }
+
+/* 响应式 */
+@media (min-width: 720px) {
+  .modal-mask { align-items: center; padding: 20px; }
+  .modal { border-radius: 20px; }
+}
+@media (max-width: 900px) {
+  :root { --sidebar-w: 74px; }
+  .brand-name, .nav-item .nav-txt, .side-tip { display: none; }
+  .nav-item { justify-content: center; }
+  .side-foot .btn { font-size: 0; padding: 12px; }
+}
+@media (max-width: 719px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .bottom-nav { display: flex; }
+  .main-head { padding: 16px 16px; }
+  .page-body { padding: 8px 14px 90px; }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .grid-2 { grid-template-columns: 1fr; }
+  .head-actions .btn-primary { font-size: 0; padding: 10px 14px; }
+  .head-actions .btn-primary::after { content: "＋"; font-size: 18px; }
+}
+
+</style>
+</head>
+<body>
+  <!-- 桌面侧边栏 -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-logo">🧗</span>
+      <span class="brand-name">攀岩日志</span>
+    </div>
+    <nav class="side-nav" id="sideNav"></nav>
+    <div class="side-foot">
+      <button class="btn btn-primary w-full" data-action="quick-start">＋ 快速记录</button>
+      <p class="side-tip">数据保存在本机浏览器</p>
+    </div>
+  </aside>
+
+  <!-- 主区域 -->
+  <main class="main">
+    <header class="main-head">
+      <div class="head-title">
+        <h1 id="pageTitle">首页</h1>
+        <p class="head-sub" id="pageSub"></p>
+      </div>
+      <div class="head-actions" id="headActions"></div>
+    </header>
+    <div class="page-body" id="pageBody"></div>
+  </main>
+
+  <!-- 移动端底部导航 -->
+  <nav class="bottom-nav" id="bottomNav"></nav>
+
+  <!-- 弹层容器 -->
+  <div id="modalRoot"></div>
+  <!-- 提示容器 -->
+  <div id="toastWrap"></div>
+  <!-- 海报画布（隐藏） -->
+  <canvas id="posterCanvas" width="600" height="900"></canvas>
+
+<script>
+
+/* Canvas roundRect polyfill（旧版 Safari 兼容） */
+if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    this.moveTo(x + r, y);
+    this.lineTo(x + w - r, y); this.arcTo(x + w, y, x + w, y + r, r);
+    this.lineTo(x + w, y + h - r); this.arcTo(x + w, y + h, x + w - r, y + h, r);
+    this.lineTo(x + r, y + h); this.arcTo(x, y + h, x, y + h - r, r);
+    this.lineTo(x, y + r); this.arcTo(x, y, x + r, y, r);
+    this.closePath();
+    return this;
+  };
+}
+
+/* ============ utils.js — 工具函数 ============ */
+
+/* ---------- 格式化 ---------- */
+const fmt = {
+  date(d) {
+    if (!d) return '';
+    if (d instanceof Date) d = toDateStr(d);
+    const [y, m, day] = String(d).slice(0, 10).split('-');
+    if (!y || !m || !day) return String(d);
+    const dt = new Date(y, m - 1, day);
+    const wd = ['日', '一', '二', '三', '四', '五', '六'][dt.getDay()];
+    return `${Number(m)}月${Number(day)}日 周${wd}`;
+  },
+  monthCn(m) { // 'YYYY-MM' -> 'YYYY年M月'
+    if (!m) return '';
+    const [y, mm] = String(m).split('-');
+    return `${y}年${Number(mm)}月`;
+  },
+  money(n) {
+    const v = Number(n) || 0;
+    return '¥' + (Number.isInteger(v) ? v : v.toFixed(2));
+  },
+  count(n) { return String(Number(n) || 0); },
+  pct(n) { return Math.round((Number(n) || 0) * 100) + '%'; },
+};
+
+function toDateStr(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function todayStr() { return toDateStr(); }
+function currentMonth() { return todayStr().slice(0, 7); }
+function daysBetween(a, b) {
+  const A = new Date(String(a).replace(/-/g, '/'));
+  const B = new Date(String(b).replace(/-/g, '/'));
+  return Math.floor((B - A) / 86400000);
+}
+
+/* 香蕉攀岩等级换算表（参考图三：香蕉攀岩难度等级示意图）
+   香蕉攀岩馆内等级 1-15 与 V 级对应关系：
+   1-2 → V0 | 3-4 → V1 | 5-6 → V2 | 7-8 → V3
+   9-10 → V4 | 11-12 → V5 | 13-14 → V6 | 15 → V7
+*/
+const BANANA_GRADES = {
+  '1-2': 'V0', '3-4': 'V1', '5-6': 'V2', '7-8': 'V3',
+  '9-10': 'V4', '11-12': 'V5', '13-14': 'V6', '15': 'V7',
+};
+const BANANA_TO_V = Object.fromEntries(Object.entries(BANANA_GRADES).map(([k, v]) => [v, k]));
+
+function bananaToV(bananaGrade) { return BANANA_GRADES[bananaGrade] || ''; }
+function vToBanana(vGrade) { return BANANA_TO_V[vGrade] || ''; }
+
+/* ---------- 等级解析（V / YDS / Font / 法国） ---------- */
+const GRADES = {
+  v: ['V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7'],
+  font: ['4', '5', '6A', '6B', '6C', '7A', '7B', '7C', '8A', '8B', '8C', '9A'],
+  yds: ['5.7', '5.8', '5.9', '5.10a', '5.10b', '5.10c', '5.10d', '5.11a', '5.11b', '5.11c', '5.11d', '5.12a', '5.12b', '5.12c', '5.12d', '5.13a', '5.13b', '5.13c', '5.13d', '5.14a', '5.14b', '5.14c', '5.14d', '5.15a', '5.15b', '5.15c', '5.15d'],
+  french: ['5c', '6a', '6a+', '6b', '6b+', '6c', '6c+', '7a', '7a+', '7b', '7b+', '7c', '7c+', '8a', '8a+', '8b', '8b+', '8c', '8c+', '9a'],
+};
+const YDS_ORDER = (() => {
+  const list = GRADES.yds;
+  const map = {};
+  list.forEach((g, i) => map[g] = i);
+  return map;
+})();
+
+/** 等级 -> 数值（同体系内比较）。v: VB=-1, V0=0..V17=17；yds: 5.7=0..; font/french 按列表顺序 */
+function gradeValue(grade, system) {
+  const g = String(grade || '').trim().toLowerCase();
+  if (!g) return null;
+  if (system === 'v') {
+    const m = g.match(/^v([0-9]+)(\+)?$/);
+    if (m) return Number(m[1]) + (m[2] ? 0.5 : 0);
+    return g === 'vb' ? -1 : null;
+  }
+  if (system === 'yds') {
+    const base = YDS_ORDER[g];
+    if (base !== undefined) return base;
+    const m = g.match(/^5\.(\d+)([a-d]?)(\+)?$/);
+    if (m) {
+      const cand = `5.${m[1]}${m[2] || 'a'}`;
+      const b = YDS_ORDER[cand];
+      return b === undefined ? null : b + (m[3] ? 0.5 : 0);
+    }
+    return null;
+  }
+  const idx = (GRADES[system] || []).findIndex((x) => x.toLowerCase() === g);
+  return idx >= 0 ? idx : null;
+}
+
+const SYS_LABEL = { v: 'V级', font: 'Font', yds: 'YDS', french: '法国' };
+const CLIMB_TYPE_LABEL = { boulder: '抱石', auto: '自保', top: '顶绳', toprope: '顶绳', lead: '先锋' };
+function climbTypeLabel(types) {
+  if (types === undefined || types === null) return '';
+  if (!Array.isArray(types)) return CLIMB_TYPE_LABEL[types] || '';
+  if (!types.length) return '';
+  return types.map((t) => CLIMB_TYPE_LABEL[t] || t).join(' / ');
+}
+const COMPLETION_LABEL = { flash: 'Flash', redpoint: 'Redpoint', project: '尝试中', failed: '未完成' };
+const COMPLETION_COLOR = { flash: 'var(--green)', redpoint: 'var(--brand)', project: 'var(--blue)', failed: 'var(--danger)' };
+const SHOE_BRANDS = ['La Sportiva', 'Scarpa', 'SoiLL', 'Five Ten', 'Butora', 'Mad Rock', 'Boreal', 'Evolv', 'Black Diamond', '凯乐石 Kailas', '奥索卡 Ozark', '其他'];
+
+const SHOE_CATEGORY_LABEL = { competition: '竞技', allround: '全能', beginner: '入门', gym: '岩馆专用', trad: '户外传统' };
+const WALL_TYPE_LABEL = { slab: '平板', vertical: '垂直', overhang: '大角度', roof: '屋檐' };
+const BODY_LABEL = { great: '状态很好', good: '正常', tired: '疲劳', injured: '带伤' };
+const TIMESLOT_LABEL = { morning: '上午', afternoon: '下午', evening: '晚上', night: '夜场' };
+const GEAR_TYPE_LABEL = { chalk_bag: '镁粉袋', harness: '安全带', quickdraw: '快挂', belay: '保护器', helmet: '头盔', rope: '绳索', other: '其他' };
+
+/* ---------- 鞋子成本核算 ---------- */
+function shoeRealCost(shoe, resoles) {
+  const base = Number(shoe.purchasePrice) || 0;
+  const resole = (resoles || []).reduce((s, r) => s + (Number(r.cost) || 0), 0);
+  return { realCost: base + resole, purchase: base, resoleCost: resole, resoleCount: (resoles || []).length };
+}
+function costPerClimb(shoe, resoles) {
+  const { realCost } = shoeRealCost(shoe, resoles);
+  const n = Math.max(1, Number(shoe.climbCount) || 0);
+  return Math.round((realCost / n) * 100) / 100;
+}
+function shoeServiceDays(shoe) {
+  const start = shoe.firstUseDate || shoe.purchaseDate;
+  const end = shoe.retiredDate || todayStr();
+  if (!start) return 0;
+  return Math.max(1, daysBetween(start, end) + 1);
+}
+
+/* 磨损分级 */
+function wearInfo(wearLevel) {
+  const w = Math.max(0, Math.min(100, Number(wearLevel) || 0));
+  if (w < 30) return { level: 'new', label: '全新', color: 'var(--green)', action: '正常使用' };
+  if (w < 60) return { level: 'light', label: '微磨损', color: '#E8A23D', action: '注意观察' };
+  if (w < 85) return { level: 'worn', label: '需要换底', color: 'var(--brand)', action: '建议换底' };
+  return { level: 'dead', label: '报废', color: 'var(--danger)', action: '建议退役' };
+}
+
+/* 装备服役提醒 */
+function gearReminder(gear) {
+  if (!gear.purchaseDate || !gear.serviceLifeYears) {
+    return { level: 0, label: '未设年限', color: 'var(--muted)' };
+  }
+  const purchase = new Date(String(gear.purchaseDate).replace(/-/g, '/'));
+  const limit = new Date(purchase);
+  limit.setFullYear(limit.getFullYear() + gear.serviceLifeYears);
+  const daysLeft = Math.floor((limit - new Date()) / 86400000);
+  if (daysLeft < 0) return { level: 3, label: `已超期 ${-daysLeft} 天`, color: 'var(--danger)', daysLeft };
+  if (daysLeft <= 90) return { level: 2, label: `即将退役 · 剩 ${daysLeft} 天`, color: '#E8A23D', daysLeft };
+  if (daysLeft <= 180) return { level: 1, label: `服役过半 · 剩 ${daysLeft} 天`, color: 'var(--blue)', daysLeft };
+  return { level: 0, label: `正常 · 剩 ${daysLeft} 天`, color: 'var(--green)', daysLeft };
+}
+
+/* ---------- DOM 辅助 ---------- */
+function el(html) {
+  const t = document.createElement('template');
+  t.innerHTML = html.trim();
+  return t.content.firstElementChild;
+}
+function uid(prefix) {
+  return (prefix || 'id') + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+function escapeHTML(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function toast(msg, ms = 2200) {
+  const wrap = document.getElementById('toastWrap');
+  const t = el(`<div class="toast">${escapeHTML(msg)}</div>`);
+  wrap.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 320); }, ms);
+}
+function confirmModal(msg, onOk, okText = '确认', danger = false) {
+  const root = document.getElementById('modalRoot');
+  const m = el(`
+    <div class="modal-mask modal-sm">
+      <div class="modal">
+        <div class="modal-body" style="text-align:center;padding:28px 24px;">
+          <div style="font-size:15px;color:var(--rock-2);">${escapeHTML(msg)}</div>
+        </div>
+        <div class="modal-foot" style="justify-content:center;">
+          <button class="btn btn-soft" data-act="cancel">取消</button>
+          <button class="btn ${danger ? 'btn-danger-soft' : 'btn-primary'}" data-act="ok">${escapeHTML(okText)}</button>
+        </div>
+      </div>
+    </div>`);
+  root.appendChild(m);
+  m.addEventListener('click', (e) => {
+    const act = e.target.closest('[data-act]');
+    if (!act) return;
+    m.remove();
+    if (act.dataset.act === 'ok') onOk && onOk();
+  });
+}
+function modalClose(root) { root && root.remove(); }
+
+</script>
+<script>
+/* ============ data.js — 数据层（localStorage） ============ */
+
+const DB_KEY = 'climbing_log_db_v2';
+const COLLECTIONS = ['gyms', 'shoes', 'resoles', 'reviews', 'gear', 'sessions', 'routes', 'goals', 'badges', 'settings'];
+
+/** 空库结构 */
+function emptyDB() {
+  return {
+    gyms: [], shoes: [], resoles: [], reviews: [], gear: [],
+    sessions: [], routes: [], goals: [], badges: {},
+    settings: { preferredGradeSystem: 'v', defaultShoeId: '', defaultGearIds: [], quickRecordMode: true, profile: { name: '' } },
+  };
+}
+
+let db = emptyDB();
+
+/** 旧数据结构自动迁移（幂等）：让旧版本存在的数据直接兼容新版 */
+function migrateDB(d) {
+  if (!d || typeof d !== 'object') return d;
+  let changed = false;
+  (d.sessions || []).forEach((s) => {
+    if (typeof s.climbType === 'string') { s.climbType = [s.climbType]; changed = true; }
+    if (!Array.isArray(s.climbType) || !s.climbType.length) { s.climbType = ['boulder']; changed = true; }
+  });
+  (d.routes || []).forEach((r) => { if (!r.gradeSystem) { r.gradeSystem = (d.settings && d.settings.preferredGradeSystem) || 'v'; changed = true; } });
+  (d.shoes || []).forEach((sd) => { if (sd.firstUseDate === undefined) { sd.firstUseDate = ''; changed = true; } });
+  (d.gear || []).forEach((g) => { if (g.serviceLifeYears === undefined) { g.serviceLifeYears = 0; changed = true; } });
+  return changed;
+}
+function loadDB() {
+  try {
+    const raw = localStorage.getItem(DB_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    db = parsed && parsed.sessions ? { ...emptyDB(), ...parsed } : emptyDB();
+    if (migrateDB(db)) saveDB();
+  } catch (e) {
+    db = emptyDB();
+  }
+  return db;
+}
+function saveDB() {
+  try {
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
+  } catch (e) {
+    toast('存储空间不足，导出数据以防丢失');
+  }
+}
+function resetDB() {
+  db = emptyDB();
+  saveDB();
+}
+
+/* ---------- 通用 CRUD ---------- */
+function createDoc(col, data) {
+  const doc = { _id: uid(col), createdAt: Date.now(), ...data };
+  db[col].push(doc);
+  saveDB();
+  return doc;
+}
+function updateDoc(col, id, patch) {
+  const idx = db[col].findIndex((d) => d._id === id);
+  if (idx >= 0) { db[col][idx] = { ...db[col][idx], ...patch, updatedAt: Date.now() }; saveDB(); return db[col][idx]; }
+  return null;
+}
+function deleteDoc(col, id) {
+  db[col] = db[col].filter((d) => d._id !== id);
+  saveDB();
+}
+
+/* ---------- 装备/鞋 快捷查找 ---------- */
+function getShoe(id) { return db.shoes.find((s) => s._id === id) || null; }
+function getShoeResoles(shoeId) { return db.resoles.filter((r) => r.shoeId === shoeId); }
+function getGym(id) { return db.gyms.find((g) => g._id === id) || null; }
+function getSession(id) { return db.sessions.find((s) => s._id === id) || null; }
+function getRoutesOfSession(sessionId) { return db.routes.filter((r) => r.sessionId === sessionId); }
+
+/* ---------- Session 创建（含反写） ---------- */
+function createSession(sessionData, routesData) {
+  const session = createDoc('sessions', { ...sessionData, routeCount: routesData.length });
+  (routesData || []).forEach((r) => createDoc('routes', { sessionId: session._id, ...r }));
+  // 反写鞋款
+  if (sessionData.shoeId) {
+    const shoe = getShoe(sessionData.shoeId);
+    if (shoe) {
+      const patch = { climbCount: (Number(shoe.climbCount) || 0) + 1 };
+      if (!shoe.firstUseDate && sessionData.date) patch.firstUseDate = sessionData.date;
+      updateDoc('shoes', shoe._id, patch);
+    }
+  }
+  // 反写岩馆
+  if (sessionData.gymId) {
+    const gym = getGym(sessionData.gymId);
+    if (gym) updateDoc('gyms', gym._id, { visitCount: (Number(gym.visitCount) || 0) + 1, lastVisitAt: sessionData.date });
+  }
+  return session;
+}
+
+function deleteSession(sessionId) {
+  const session = getSession(sessionId);
+  if (!session) return;
+  const n = getRoutesOfSession(sessionId).length;
+  // 反写
+  if (session.shoeId) {
+    const shoe = getShoe(session.shoeId);
+    if (shoe) updateDoc('shoes', shoe._id, { climbCount: Math.max(0, (Number(shoe.climbCount) || 0) - 1) });
+  }
+  if (session.gymId) {
+    const gym = getGym(session.gymId);
+    if (gym) updateDoc('gyms', gym._id, { visitCount: Math.max(0, (Number(gym.visitCount) || 0) - 1) });
+  }
+  db.routes = db.routes.filter((r) => r.sessionId !== sessionId);
+  db.sessions = db.sessions.filter((s) => s._id !== sessionId);
+  saveDB();
+}
+
+/* ---------- 换底 ---------- */
+function addResole(shoeId, data) {
+  const doc = createDoc('resoles', { shoeId, ...data });
+  // 换底后重置磨损
+  updateDoc('shoes', shoeId, { wearLevel: 0, status: 'active' });
+  return doc;
+}
+
+/* ---------- 目标进度 ---------- */
+function refreshGoalProgress() {
+  const routes = db.routes;
+  const sessions = db.sessions;
+  const sentRoutes = routes.filter((r) => r.completion === 'flash' || r.completion === 'redpoint');
+  db.goals.forEach((g) => {
+    if (g.status !== 'active') return;
+    let current = 0;
+    if (g.metric === 'count') current = sentRoutes.length;
+    else if (g.metric === 'grade') current = sentRoutes.filter((r) => r.grade === g.grade && r.gradeSystem === g.gradeSystem).length;
+    else if (g.metric === 'frequency') current = sessions.length;
+    else current = Number(g.currentValue) || 0;
+    g.currentValue = current;
+    if (g.targetValue && current >= g.targetValue) {
+      g.status = 'completed';
+      g.completedAt = toDateStr(new Date());
+    }
+  });
+  saveDB();
+}
+
+/* ---------- 徽章系统 ---------- */
+const BADGE_DEFS = [
+  { key: 'first_climb', name: '初次上墙', desc: '完成第 1 条攀爬记录', icon: '🧗' },
+  { key: 'first_sent', name: '首次完攀', desc: '首次完攀任意线路', icon: '✅' },
+  { key: 'grade_breakthrough', name: '等级突破', desc: '首次完攀更高难度', icon: '🏆' },
+  { key: 'climbs_100', name: '百条线路', desc: '累计记录 ≥ 100 条', icon: '💯' },
+  { key: 'weeks_4_streak', name: '连续四周', desc: '连续 4 个自然周有攀爬', icon: '🔥' },
+  { key: 'month_frequency', name: '高频攀爬月', desc: '单月攀爬 ≥ 10 次', icon: '📈' },
+  { key: 'venue_explorer', name: '场馆探险家', desc: '去过 ≥ 5 个岩馆/岩场', icon: '🗺️' },
+  { key: 'style_master', name: '风格大师', desc: '某一风格完攀 ≥ 20 条', icon: '⭐' },
+];
+
+function computeBadges() {
+  const unlocked = {};
+  const routes = db.routes;
+  const sessions = db.sessions;
+  const sent = routes.filter((r) => r.completion === 'flash' || r.completion === 'redpoint');
+  if (routes.length >= 1) unlocked.first_climb = true;
+  if (sent.length >= 1) unlocked.first_sent = true;
+  if (sent.length >= 1) unlocked.grade_breakthrough = true;
+  if (routes.length >= 100) unlocked.climbs_100 = true;
+  // 连续 4 周
+  const weeks = new Set(sessions.map((s) => {
+    const d = new Date(String(s.date).replace(/-/g, '/'));
+    const day = d.getDay() === 0 ? 7 : d.getDay();
+    const mon = new Date(d); mon.setDate(d.getDate() - (day - 1));
+    return String(mon.getFullYear()) + '_' + Math.floor((mon - new Date(mon.getFullYear(), 0, 1)) / 6048e5);
+  }));
+  if (weeks.size >= 4) unlocked.weeks_4_streak = true;
+  const byMonth = {};
+  sessions.forEach((s) => { const m = (s.date || '').slice(0, 7); if (m) byMonth[m] = (byMonth[m] || 0) + 1; });
+  if (Object.values(byMonth).some((n) => n >= 10)) unlocked.month_frequency = true;
+  const venueSet = new Set(sessions.map((s) => s.gymName).filter(Boolean));
+  if (venueSet.size >= 5) unlocked.venue_explorer = true;
+  const styles = {};
+  sent.forEach((r) => (r.styles || []).forEach((st) => { styles[st] = (styles[st] || 0) + 1; }));
+  if (Object.values(styles).some((n) => n >= 20)) unlocked.style_master = true;
+  return unlocked;
+}
+function syncBadges() {
+  const unlocked = computeBadges();
+  let fresh = 0;
+  Object.keys(unlocked).forEach((k) => {
+    if (!db.badges[k]) { db.badges[k] = Date.now(); fresh++; }
+  });
+  if (fresh) saveDB();
+  return fresh;
+}
+
+/* ---------- 聚合统计 ---------- */
+function monthlyTrend(sessions) {
+  const map = {};
+  sessions.forEach((s) => {
+    const m = (s.date || '').slice(0, 7);
+    if (!m) return;
+    map[m] = map[m] || { month: m, sessionCount: 0, routeCount: 0, sentCount: 0 };
+    map[m].sessionCount++;
+  });
+  db.routes.forEach((r) => {
+    const s = getSession(r.sessionId);
+    const m = s ? (s.date || '').slice(0, 7) : null;
+    if (!m || !map[m]) return;
+    map[m].routeCount++;
+    if (r.completion === 'flash' || r.completion === 'redpoint') map[m].sentCount++;
+  });
+  return Object.values(map).sort((a, b) => a.month.localeCompare(b.month)).slice(-8);
+}
+
+function gradeDist(system, onlySent = true) {
+  const map = {};
+  db.routes.forEach((r) => {
+    if (r.gradeSystem !== system) return;
+    if (onlySent && r.completion !== 'flash' && r.completion !== 'redpoint') return;
+    map[r.grade] = (map[r.grade] || 0) + 1;
+  });
+  return Object.entries(map).map(([grade, value]) => ({ grade, value }))
+    .sort((a, b) => (gradeValue(a.grade, system) || 0) - (gradeValue(b.grade, system) || 0));
+}
+
+function styleAnalysis() {
+  const map = {};
+  db.routes.filter((r) => r.completion === 'flash' || r.completion === 'redpoint').forEach((r) => {
+    (r.styles || []).forEach((st) => { map[st] = (map[st] || 0) + 1; });
+  });
+  return Object.entries(map).map(([k, v]) => ({ key: k, value: v })).sort((a, b) => b.value - a.value);
+}
+
+function gymTop(n = 5) {
+  const map = {};
+  db.sessions.forEach((s) => {
+    const name = s.gymName || '未知';
+    map[name] = map[name] || { name, count: 0, days: new Set() };
+    map[name].count++;
+    if (s.date) map[name].days.add(s.date);
+  });
+  return Object.values(map).map((v) => ({ ...v, days: v.days.size })).sort((a, b) => b.count - a.count).slice(0, n);
+}
+
+function milestones(system) {
+  const sent = db.routes
+    .filter((r) => r.gradeSystem === system && (r.completion === 'flash' || r.completion === 'redpoint'))
+    .map((r) => ({ ...r, date: (getSession(r.sessionId) || {}).date || '' }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  let best = -Infinity;
+  const out = [];
+  sent.forEach((r) => {
+    const v = gradeValue(r.grade, system);
+    if (v === null || v <= best) return;
+    best = v;
+    out.push({ date: r.date, grade: r.grade, gradeSystem: system, routeName: r.routeName, gymName: (getSession(r.sessionId) || {}).gymName || '' });
+  });
+  return out;
+}
+
+function overallStats() {
+  const sessions = db.sessions;
+  const routes = db.routes;
+  const sent = routes.filter((r) => r.completion === 'flash' || r.completion === 'redpoint');
+  return {
+    sessionCount: sessions.length,
+    climbDays: new Set(sessions.map((s) => s.date)).size,
+    routeCount: routes.length,
+    sentCount: sent.length,
+    attemptTotal: routes.reduce((s, r) => s + (Number(r.attempts) || 1), 0),
+    venueCount: new Set(sessions.map((s) => s.gymName).filter(Boolean)).size,
+  };
+}
+
+/* ---------- 项目线路攻坚进度 ---------- */
+function projectProgress(routeName, grade, gradeSystem) {
+  const attempts = db.routes
+    .filter((r) => r.routeName === routeName && r.grade === grade && r.gradeSystem === gradeSystem)
+    .map((r) => ({ ...r, date: (getSession(r.sessionId) || {}).date || '' }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (!attempts.length) return null;
+  const totalAttempts = attempts.reduce((s, a) => s + (Number(a.attempts) || 1), 0);
+  const sessionCount = new Set(attempts.map((a) => a.sessionId)).size;
+  const dates = attempts.map((a) => a.date).filter(Boolean);
+  const first = new Date(String(dates[0]).replace(/-/g, '/'));
+  const last = new Date(String(dates[dates.length - 1]).replace(/-/g, '/'));
+  const weeks = Math.max(0, Math.ceil((last - first) / 6048e5));
+  const gv = gradeValue(grade, gradeSystem);
+  const expected = gv === null ? 10 : Math.max(3, Math.pow(1.8, Math.max(0, gv - 1)) * 2);
+  const progress = Math.min(100, Math.round((totalAttempts / expected) * 100));
+  const lastR = attempts[attempts.length - 1];
+  const status = (lastR.completion === 'flash' || lastR.completion === 'redpoint') ? 'sent'
+    : progress >= 80 ? 'almost' : progress >= 50 ? 'halfway' : 'early';
+  const statusLabel = { sent: '已完攀', almost: '即将突破', halfway: '攻坚过半', early: '初期攻坚' }[status];
+  return { routeName, grade, gradeSystem, totalAttempts, sessionCount, weeks, progress, status, statusLabel };
+}
+
+function findProjects() {
+  const map = {};
+  db.routes.forEach((r) => {
+    if ((r.completion === 'flash' || r.completion === 'redpoint')) return;
+    const key = r.routeName + '|' + r.grade + '|' + r.gradeSystem;
+    map[key] = map[key] || { routeName: r.routeName, grade: r.grade, gradeSystem: r.gradeSystem };
+  });
+  return Object.values(map).map((p) => projectProgress(p.routeName, p.grade, p.gradeSystem)).filter(Boolean);
+}
+
+/* ---------- 汇率/成本装备效能 ---------- */
+function shoeEfficiency() {
+  return db.shoes.map((shoe) => {
+    const resoles = getShoeResoles(shoe._id);
+    const reviews = db.reviews.filter((r) => r.shoeId === shoe._id);
+    const { realCost, resoleCount } = shoeRealCost(shoe, resoles);
+    const perClimb = costPerClimb(shoe, resoles);
+    const days = shoeServiceDays(shoe);
+    const avgRating = reviews.length ? reviews.reduce((s, r) => s + (Number(r.rating) || 0), 0) / reviews.length : 3;
+    return {
+      shoe, resoles, realCost, resoleCount, perClimb, days, avgRating: Math.round(avgRating * 10) / 10,
+      climbCount: Number(shoe.climbCount) || 0,
+    };
+  }).sort((a, b) => a.perClimb - b.perClimb);
+}
+
+/* ---------- 示例数据 ---------- */
+function seedDemo() {
+  return seedOneExample();
+}
+
+/**
+ * seedOneExample — 加载 1 条最小示例（用户自愿触发）
+ * 只放：1 个示例岩馆、1 双示例鞋、1 个装备、1 个会话（2 条线路）、1 个目标。
+ * 目的：让用户快速看一眼数据长什么样，其余全部留白，从 0 搭建自己的日志。
+ */
+function seedOneExample() {
+  resetDB();
+  const today = todayStr();
+
+  const gym = createDoc('gyms', {
+    name: '示例岩馆（可改名）', brandChain: '—', type: 'gym', address: '',
+    location: '', wallTypes: ['boulder'], styleTags: ['balance'],
+    visitCount: 0, lastVisitAt: today, isFavorite: false, notes: '',
+  });
+
+  const shoe = createDoc('shoes', {
+    brand: 'La Sportiva', model: 'Solution Comp', category: 'allround', size: 'EU42',
+    purchasePrice: 1299, purchaseDate: '2026-01-01', isDiscontinued: false, photo: '',
+    status: 'active', wearLevel: 0, climbCount: 0, firstUseDate: '', retiredDate: '', notes: '',
+  });
+
+  const gear = createDoc('gear', {
+    type: 'chalk_bag', brand: 'Black Diamond', model: 'Mojo', certification: '',
+    purchasePrice: 180, purchaseDate: today, serviceLifeYears: 0,
+    status: 'active', isDefault: true, notes: '',
+  });
+
+  const session = createSession({
+    date: today, timeSlot: 'evening', gymId: gym._id, gymName: gym.name,
+    climbType: ['boulder'], gradeSystem: db.settings.preferredGradeSystem || 'v',
+    shoeId: shoe._id, shoeName: shoe.model, gearIds: [gear._id],
+    bodyCondition: 'good', feeling: '从 0 开始的第一条记录', notes: '',
+  }, [
+    { routeName: '示例线路 01', grade: 'V1', color: '橙', completion: 'flash', attempts: 1, styles: ['balance'], notes: '', gradeSystem: 'v' },
+    { routeName: '示例线路 02', grade: 'V2', color: '蓝', completion: 'project', attempts: 3, styles: ['power'], notes: '', gradeSystem: 'v' },
+  ]);
+
+  createDoc('goals', {
+    title: '本月完成 3 条 V4', type: 'short', metric: 'grade', grade: 'V4', gradeSystem: 'v',
+    targetValue: 3, currentValue: 0, deadline: '', status: 'active',
+  });
+
+  refreshGoalProgress();
+  syncBadges();
+  saveDB();
+  return { session };
+}
+
+/* ---------- 导出 ---------- */
+function exportAll() {
+  return { exportedAt: new Date().toISOString(), app: 'climbing-log-web', ...db };
+}
+function exportCSV() {
+  const lines = [['日期', '岩馆', '类型', '线路', '等级', '等级体系', '完成方式', '尝试次数', '颜色', '风格', '备注']];
+  db.sessions.forEach((s) => {
+    getRoutesOfSession(s._id).forEach((r) => {
+      lines.push([s.date, s.gymName, s.climbType, r.routeName, r.grade, r.gradeSystem, r.completion, r.attempts, r.color || '', (r.styles || []).join('|'), r.notes || '']);
+    });
+  });
+  const esc = (v) => { const str = String(v == null ? '' : v); return /[",\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str; };
+  return '\uFEFF' + lines.map((l) => l.map(esc).join(',')).join('\r\n');
+}
+function downloadFile(name, content, mime = 'text/plain') {
+  const blob = new Blob([content], { type: mime + ';charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 300);
+}
+
+/* ---------- 初始化 ---------- */
+// 默认从 0 开始：不自动填充任何示例数据。
+// 页面为空时，首页会展示搭建引导；用户可随时点击「加载 1 条示例」体验功能。
+loadDB();
+
+</script>
+<script>
+/* ============ charts.js — 零依赖 SVG 图表 ============ */
+
+const CHART_COLORS = ['#E8632A', '#2F6FED', '#2FA17E', '#E8A23D', '#8E6BC7', '#C0524A', '#4FA3C4', '#B8B6AE'];
+const svgNS = 'http://www.w3.org/2000/svg';
+
+function svgEl(tag, attrs) {
+  const n = document.createElementNS(svgNS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  return n;
+}
+
+function chartShell(w, h, title) {
+  const svg = svgEl('svg', { viewBox: `0 0 ${w} ${h}`, class: 'chart-svg', role: 'img' });
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  if (title) {
+    const t = svgEl('title', {}); t.textContent = title;
+    svg.appendChild(t);
+  }
+  return svg;
+}
+
+/** 纵向柱状图 */
+function barChart(container, data, opts = {}) {
+  container.innerHTML = '';
+  if (!data || !data.length) {
+    container.innerHTML = '<div class="empty"><div class="ico">📊</div>暂无数据</div>';
+    return;
+  }
+  const W = 560, H = opts.height || 300;
+  const padL = opts.padL || 44, padB = opts.padB || 34, padT = 24, padR = 12;
+  const max = Math.max(...data.map((d) => Number(d.value) || 0), 1);
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+  const svg = chartShell(W, H, opts.title || '柱状图');
+  // 网格线
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + (innerH / 4) * i;
+    svg.appendChild(svgEl('line', { x1: padL, y1: y, x2: W - padR, y2: y, stroke: '#ECE9E3', 'stroke-width': 1 }));
+    svg.appendChild(svgEl('text', { x: padL - 6, y: y + 4, 'text-anchor': 'end', 'font-size': 10, fill: '#8C8C86' })).textContent = Math.round(max - (max / 4) * i);
+  }
+  const n = data.length;
+  const slot = innerW / n;
+  const bw = Math.min(44, slot * 0.55);
+  data.forEach((d, i) => {
+    const v = Number(d.value) || 0;
+    const bh = max > 0 ? (v / max) * innerH : 0;
+    const x = padL + slot * i + (slot - bw) / 2;
+    const y = padT + innerH - bh;
+    const color = (opts.colors && opts.colors[i]) || CHART_COLORS[i % CHART_COLORS.length];
+    const rect = svgEl('rect', { x, y, width: bw, height: Math.max(0, bh), rx: opts.rx || 5, fill: color });
+    const title = svgEl('title', {}); title.textContent = `${d.label}: ${d.value}`;
+    rect.appendChild(title);
+    svg.appendChild(rect);
+    const tx = padL + slot * i + slot / 2;
+    const ty = padT + innerH + 14;
+    const label = svgEl('text', { x: tx, y: ty, 'text-anchor': 'middle', 'font-size': 10, fill: '#5A5A63' });
+    label.textContent = d.label;
+    svg.appendChild(label);
+  });
+  container.appendChild(svg);
+}
+
+/** 折线图（多序列） */
+function lineChart(container, data, series, opts = {}) {
+  container.innerHTML = '';
+  if (!data || !data.length) {
+    container.innerHTML = '<div class="empty"><div class="ico">📈</div>暂无数据</div>';
+    return;
+  }
+  const W = 600, H = opts.height || 280;
+  const padL = 40, padB = 30, padT = 20, padR = 14;
+  const vals = [];
+  series.forEach((s) => data.forEach((d) => vals.push(Number(d[s.key]) || 0)));
+  const max = Math.max(...vals, 1);
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+  const svg = chartShell(W, H, opts.title || '折线图');
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + (innerH / 4) * i;
+    svg.appendChild(svgEl('line', { x1: padL, y1: y, x2: W - padR, y2: y, stroke: '#ECE9E3', 'stroke-width': 1 }));
+    svg.appendChild(svgEl('text', { x: padL - 6, y: y + 4, 'text-anchor': 'end', 'font-size': 10, fill: '#8C8C86' })).textContent = Math.round(max - (max / 4) * i);
+  }
+  const xFor = (i) => padL + (data.length > 1 ? (innerW * i) / (data.length - 1) : innerW / 2);
+  const yFor = (v) => padT + innerH - (max > 0 ? (v / max) * innerH : 0);
+  data.forEach((d, i) => {
+    const tx = xFor(i), ty = padT + innerH + 16;
+    const label = svgEl('text', { x: tx, y: ty, 'text-anchor': 'middle', 'font-size': 10, fill: '#5A5A63' });
+    label.textContent = d.label;
+    svg.appendChild(label);
+  });
+  series.forEach((s, si) => {
+    const color = s.color || CHART_COLORS[si % CHART_COLORS.length];
+    const pts = data.map((d, i) => [xFor(i), yFor(Number(d[s.key]) || 0)]);
+    let path = `M ${pts[0][0]} ${pts[0][1]}`;
+    for (let i = 1; i < pts.length; i++) {
+      path += ` L ${pts[i][0]} ${pts[i][1]}`;
+    }
+    const line = svgEl('path', { d: path, fill: 'none', stroke: color, 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+    svg.appendChild(line);
+    if (opts.area) {
+      const area = svgEl('path', { d: path + ` L ${pts[pts.length - 1][0]} ${padT + innerH} L ${pts[0][0]} ${padT + innerH} Z`, fill: color, opacity: 0.08 });
+      svg.appendChild(area);
+    }
+    pts.forEach((p, pi) => {
+      const x = p[0], y = p[1];
+      const c = svgEl('circle', { cx: x, cy: y, r: 3.5, fill: '#fff', stroke: color, 'stroke-width': 2 });
+      const t = svgEl('title', {}); t.textContent = `${s.name}: ${data[pi][s.key]}`;
+      c.appendChild(t);
+      svg.appendChild(c);
+    });
+  });
+  container.appendChild(svg);
+  // 图例
+  const legend = document.createElement('div');
+  legend.className = 'chart-legend';
+  series.forEach((s, i) => {
+    const color = s.color || CHART_COLORS[i % CHART_COLORS.length];
+    legend.innerHTML += `<span><span class="legend-dot" style="background:${color}"></span>${s.name}</span>`;
+  });
+  container.appendChild(legend);
+}
+
+/** 环形图 */
+function pieChart(container, data, opts = {}) {
+  container.innerHTML = '';
+  if (!data || !data.length) {
+    container.innerHTML = '<div class="empty"><div class="ico">🥧</div>暂无数据</div>';
+    return;
+  }
+  const total = data.reduce((s, d) => s + (Number(d.value) || 0), 0);
+  if (!total) { container.innerHTML = '<div class="empty">暂无数据</div>'; return; }
+  const W = 300, H = 300, cx = W / 2, cy = H / 2;
+  const R = 100, r = 62;
+  const svg = chartShell(W, H, opts.title || '环形图');
+  let angle = -Math.PI / 2;
+  data.forEach((d, i) => {
+    const frac = (Number(d.value) || 0) / total;
+    const a2 = angle + frac * Math.PI * 2;
+    const color = (opts.colors && opts.colors[i]) || CHART_COLORS[i % CHART_COLORS.length];
+    const path = arcPath(cx, cy, R, angle, a2);
+    const hole = arcPath(cx, cy, r, angle, a2).split(' ')[0] + ' Z';
+    const seg = svgEl('path', { d: path, fill: color });
+    const t = svgEl('title', {}); t.textContent = `${d.label}: ${d.value} (${Math.round(frac * 100)}%)`;
+    seg.appendChild(t);
+    svg.appendChild(seg);
+    angle = a2;
+  });
+  svg.appendChild(svgEl('circle', { cx, cy, r, fill: '#fff' }));
+  svg.appendChild(svgEl('text', { x: cx, y: cy - 4, 'text-anchor': 'middle', 'font-size': 22, 'font-weight': 700, fill: '#2B2B34' })).textContent = total;
+  svg.appendChild(svgEl('text', { x: cx, y: cy + 16, 'text-anchor': 'middle', 'font-size': 11, fill: '#8C8C86' })).textContent = '总条数';
+  container.appendChild(svg);
+  const legend = document.createElement('div');
+  legend.className = 'chart-legend';
+  data.forEach((d, i) => {
+    legend.innerHTML += `<span><span class="legend-dot" style="background:${CHART_COLORS[i % CHART_COLORS.length]}"></span>${d.label} ${d.value}</span>`;
+  });
+  container.appendChild(legend);
+}
+function arcPath(cx, cy, r, a1, a2) {
+  const large = (a2 - a1) > Math.PI ? 1 : 0;
+  const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
+  const x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
+  return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
+}
+
+/** 横向条形图 */
+function hBarChart(container, data, opts = {}) {
+  container.innerHTML = '';
+  if (!data || !data.length) {
+    container.innerHTML = '<div class="empty"><div class="ico">📊</div>暂无数据</div>';
+    return;
+  }
+  const rowH = 34, padL = 110, padR = 30, padT = 16, padB = 10;
+  const W = 560;
+  const H = padT + padB + data.length * rowH;
+  const max = Math.max(...data.map((d) => Number(d.value) || 0), 1);
+  const innerW = W - padL - padR;
+  const svg = chartShell(W, H, opts.title || '条形图');
+  data.forEach((d, i) => {
+    const y = padT + rowH * i + rowH / 2;
+    const label = svgEl('text', { x: padL - 10, y: y + 4, 'text-anchor': 'end', 'font-size': 12, fill: '#5A5A63' });
+    label.textContent = d.label;
+    svg.appendChild(label);
+    const bw = (Number(d.value) || 0) / max * innerW;
+    const color = (opts.colors && opts.colors[i]) || CHART_COLORS[i % CHART_COLORS.length];
+    const rect = svgEl('rect', { x: padL, y: y - 8, width: Math.max(2, bw), height: 16, rx: 8, fill: color });
+    const t = svgEl('title', {}); t.textContent = `${d.label}: ${d.value}`;
+    rect.appendChild(t);
+    svg.appendChild(rect);
+    const num = svgEl('text', { x: padL + Math.max(2, bw) + 8, y: y + 4, 'font-size': 11, fill: '#8C8C86' });
+    num.textContent = d.value;
+    svg.appendChild(num);
+  });
+  container.appendChild(svg);
+}
+
+/** 气泡图（装备效能） */
+function bubbleChart(container, data, opts = {}) {
+  container.innerHTML = '';
+  if (!data || !data.length) {
+    container.innerHTML = '<div class="empty"><div class="ico">🎈</div>暂无数据</div>';
+    return;
+  }
+  const W = 600, H = 360;
+  const padL = 46, padB = 36, padT = 24, padR = 20;
+  const xs = data.map((d) => Number(d.x) || 0);
+  const ys = data.map((d) => Number(d.y) || 0);
+  const maxX = Math.max(...xs, 1) * 1.1;
+  const maxY = Math.max(...ys, 1) * 1.1;
+  const innerW = W - padL - padR, innerH = H - padT - padB;
+  const svg = chartShell(W, H, opts.title || '气泡图');
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + (innerH / 4) * i;
+    svg.appendChild(svgEl('line', { x1: padL, y1: y, x2: W - padR, y2: y, stroke: '#ECE9E3', 'stroke-width': 1 }));
+    svg.appendChild(svgEl('text', { x: padL - 6, y: y + 4, 'text-anchor': 'end', 'font-size': 10, fill: '#8C8C86' })).textContent = Math.round(maxY - (maxY / 4) * i);
+  }
+  for (let i = 0; i <= 4; i++) {
+    const x = padL + (innerW / 4) * i;
+    svg.appendChild(svgEl('text', { x, y: padT + innerH + 14, 'text-anchor': 'middle', 'font-size': 10, fill: '#8C8C86' })).textContent = Math.round(maxX / 4 * i);
+  }
+  data.forEach((d) => {
+    const bx = padL + ((Number(d.x) || 0) / maxX) * innerW;
+    const by = padT + innerH - ((Number(d.y) || 0) / maxY) * innerH;
+    const r = Math.max(10, Math.min(38, Number(d.size) || 14));
+    const c = svgEl('circle', { cx: bx, cy: by, r, fill: d.color || '#2FA17E', opacity: 0.75 });
+    const t = svgEl('title', {});
+    t.textContent = `${d.name}：单次成本 ¥${d.y}，服役 ${d.x} 天，评分 ${d.avgRating || '-'}`;
+    c.appendChild(t);
+    svg.appendChild(c);
+    const label = svgEl('text', { x: bx, y: by + 3, 'text-anchor': 'middle', 'font-size': 10, fill: '#fff', 'font-weight': 600 });
+    label.textContent = (d.name || '').slice(0, 8);
+    svg.appendChild(label);
+  });
+  container.appendChild(svg);
+  const note = document.createElement('div');
+  note.className = 'chart-legend';
+  note.innerHTML = '<span>● 横轴=服役天数 · 纵轴=单次成本(越低越好) · 气泡大小=评分</span>';
+  container.appendChild(note);
+}
+
+/** 评分条（雷达替代：按维度打分） */
+function ratingBars(container, items, max = 5) {
+  container.innerHTML = '';
+  items.forEach((it) => {
+    const row = document.createElement('div');
+    row.className = 'list-item';
+    row.innerHTML = `
+      <span style="width:64px;font-size:13px;font-weight:600;">${escapeHTML(it.label)}</span>
+      <span class="grow" style="font-size:12px;color:var(--muted);">${it.detail || ''}</span>
+      <span style="color:var(--brand);font-weight:700;">${it.value ?? '—'}</span>`;
+    container.appendChild(row);
+  });
+}
+
+</script>
+<script>
+/* ============ app.js — 应用控制器 ============ */
+
+const NAV = [
+  { key: 'home', label: '首页', icon: '🏠' },
+  { key: 'log', label: '记录', icon: '📝' },
+  { key: 'stats', label: '统计', icon: '📊' },
+  { key: 'gear', label: '装备', icon: '👟' },
+  { key: 'gyms', label: '岩馆', icon: '🧗' },
+  { key: 'profile', label: '我的', icon: '👤' },
+];
+
+const App = {
+  page: 'home',
+  quick: null, // 快速记录向导状态
+
+  init() {
+    document.addEventListener('click', this.onClick.bind(this));
+    this.renderNav();
+    this.renderHead();
+    syncBadges();
+    this.navigate('home');
+  },
+
+  renderNav() {
+    const side = document.getElementById('sideNav');
+    const bottom = document.getElementById('bottomNav');
+    side.innerHTML = NAV.map((n) =>
+      `<button class="nav-item" data-action="nav" data-page="${n.key}"><span class="nav-ico">${n.icon}</span><span class="nav-txt">${n.label}</span></button>`).join('');
+    bottom.innerHTML = NAV.map((n) =>
+      `<button class="bn-item" data-action="nav" data-page="${n.key}"><span class="bn-ico">${n.icon}</span>${n.label}</button>`).join('');
+  },
+
+  renderHead() {
+    const item = NAV.find((n) => n.key === this.page) || NAV[0];
+    document.getElementById('pageTitle').textContent = item.label;
+    const sub = { home: '你的攀岩数据总览', log: '一次攀爬 = 一个会话 · 支持多条线路', stats: '个人档案 / 装备效能 / 进阶追踪 / 报告', gear: '攀岩鞋与装备 · 成本核算与服役管理', gyms: '常去岩馆与岩场库', profile: '资料 · 徽章 · 设置 · 数据管理' }[this.page];
+    document.getElementById('pageSub').textContent = sub;
+    const actions = document.getElementById('headActions');
+    if (this.page === 'home' || this.page === 'log') {
+      actions.innerHTML = `<button class="btn btn-primary" data-action="quick-start">＋ 快速记录</button>`;
+    } else if (this.page === 'gear') {
+      actions.innerHTML = `<button class="btn btn-primary" data-action="open-shoe-form">＋ 添加攀岩鞋</button><button class="btn btn-ghost" data-action="open-gear-form">＋ 添加装备</button>`;
+    } else if (this.page === 'gyms') {
+      actions.innerHTML = `<button class="btn btn-primary" data-action="open-gym-form">＋ 添加岩馆</button>`;
+    } else if (this.page === 'stats') {
+      actions.innerHTML = `<button class="btn btn-ghost" data-action="export-csv">导出 CSV</button><button class="btn btn-primary" data-action="month-report">月度报告</button>`;
+    } else if (this.page === 'profile') {
+      actions.innerHTML = `<button class="btn btn-ghost" data-action="export-json">导出 JSON</button>`;
+    } else {
+      actions.innerHTML = '';
+    }
+  },
+
+  navigate(page) {
+    this.page = page;
+    document.querySelectorAll('.nav-item').forEach((n) => n.classList.toggle('active', n.dataset.page === page));
+    document.querySelectorAll('.bn-item').forEach((n) => n.classList.toggle('active', n.dataset.page === page));
+    this.renderHead();
+    const body = document.getElementById('pageBody');
+    const renderers = {
+      home: this.renderHome, log: this.renderLog, stats: this.renderStats,
+      gear: this.renderGear, gyms: this.renderGyms, profile: this.renderProfile,
+    };
+    renderers[page].call(this, body);
+    window.scrollTo(0, 0);
+  },
+
+  /* ============ 事件委托 ============ */
+  onClick(e) {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const act = btn.dataset.action;
+    const d = btn.dataset;
+    const map = {
+      nav: () => this.navigate(d.page),
+      'quick-start': () => this.openQuick(),
+      'open-shoe-form': () => this.openShoeForm(),
+      'open-gear-form': () => this.openGearForm(),
+      'open-gym-form': () => this.openGymForm(),
+      'save-gym': () => this.saveGym(),
+      'save-shoe': () => this.saveShoe(),
+      'save-gear': () => this.saveGear(),
+      'save-route-edit': () => {},
+      'delete-route-edit': () => this.removeQuickRoute(Number(d.idx)),
+      'add-quick-route': () => this.addQuickRoute(),
+      'quick-next': () => this.quickNext(),
+      'quick-prev': () => this.quickPrev(),
+      'quick-submit': () => this.quickSubmit(),
+      'quick-pick-gym': () => this.quickPickGym(d.id),
+      'quick-type': (d) => {
+        const k = d.key || d.type;
+        const arr = App.quick.climbType || [];
+        const idx = arr.indexOf(k);
+        if (idx >= 0) arr.splice(idx, 1); else arr.push(k);
+        App.quick.climbType = arr;
+        // 单选类型时联动等级体系：抱石→V，先锋/顶绳/自保→YDS
+        if (arr.length === 1) App.quick.gradeSystem = arr[0] === 'boulder' ? 'v' : 'yds';
+        // 局部更新 chip 状态，避免 full re-render 打断点击事件
+        const chips = document.querySelectorAll('[data-action="quick-type"]');
+        chips.forEach((c) => c.classList.toggle('active', arr.includes(c.dataset.key || c.dataset.type)));
+      },
+      'quick-shoe': (d) => {
+        App.quick.shoeId = d.id;
+        document.querySelectorAll('[data-action="quick-shoe"]').forEach((c) => c.classList.toggle('active', c.dataset.id === d.id));
+      },
+      'quick-body': (d) => {
+        App.quick.bodyCondition = d.key;
+        document.querySelectorAll('[data-action="quick-body"]').forEach((c) => c.classList.toggle('active', (c.dataset.key || c.dataset.type) === d.key));
+      },
+      'session-detail': () => this.openSessionDetail(d.id),
+      'session-delete': () => this.deleteSessionFlow(d.id),
+      'view-session-edit': () => this.editSession(d.id),
+      'shoe-detail': () => this.openShoeDetail(d.id),
+      'shoe-edit': () => this.openShoeForm(d.id),
+      'shoe-resole': () => this.openResole(d.id),
+      'shoe-retire': () => this.retireShoe(d.id),
+      'shoe-active': () => this.activateShoe(d.id),
+      'shoe-delete': () => this.deleteShoeFlow(d.id),
+      'shoe-review': () => this.openReview(d.id),
+      'gear-detail': () => this.openGearDetail(d.id),
+      'gear-edit': () => this.openGearForm(d.id),
+      'gear-retire': () => this.retireGear(d.id),
+      'gear-delete': () => this.deleteGearFlow(d.id),
+      'gym-edit': () => this.openGymForm(d.id),
+      'gym-delete': () => this.deleteGymFlow(d.id),
+      'gym-fav': () => this.toggleGymFav(d.id),
+      'grade-sys': () => this.statsGradeSystem(d.key),
+      'profile-save': () => this.saveProfile(),
+      'profile-reset': () => this.resetAll(),
+      'export-csv': () => this.exportCSV(),
+      'export-json': () => this.exportJSON(),
+      'month-report': () => this.openMonthReport(),
+      'report-download': () => this.downloadReport(),
+      'close-modal': () => this.closeModal(),
+      'noop': () => {},
+    };
+    const fn = map[act] || (App.extraActions ? App.extraActions[act] : null);
+    if (fn) { e.preventDefault(); fn(); }
+  },
+
+  modal(html, cls = '') {
+    const root = document.getElementById('modalRoot');
+    root.innerHTML = `<div class="modal-mask ${cls}"><div class="modal">${html}</div></div>`;
+    return root.firstElementChild;
+  },
+  closeModal() {
+    document.getElementById('modalRoot').innerHTML = '';
+  },
+
+  /* ============ 首页 ============ */
+  renderHomeEmpty(body) {
+    body.innerHTML = `
+      <div class="card" style="text-align:center;padding:48px 24px;">
+        <div style="font-size:46px;">🧗</div>
+        <div style="font-size:20px;font-weight:800;margin-top:12px;">这是你的专属攀岩日志</div>
+        <div class="muted" style="margin-top:6px;">从 0 开始搭建，数据只保存在你自己的浏览器里</div>
+        <div style="margin:26px auto 0;max-width:420px;text-align:left;">
+          <div class="list-item"><span style="font-size:18px;font-weight:800;">1</span><div class="grow"><span class="t-bold">添加第一个岩馆/岩场</span><div class="tiny muted">填个名字和地址就能开始记录</div></div></div>
+          <div class="list-item"><span style="font-size:18px;font-weight:800;">2</span><div class="grow"><span class="t-bold">添加攀岩鞋（选填）</span><div class="tiny muted">填品牌、型号和价格，之后自动算单次成本</div></div></div>
+          <div class="list-item"><span style="font-size:18px;font-weight:800;">3</span><div class="grow"><span class="t-bold">快速记录第一次攀爬</span><div class="tiny muted">选岩馆 → 选鞋 → 记线路，一次搞定</div></div></div>
+        </div>
+        <div style="max-width:460px;margin:26px auto 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
+          <button class="btn btn-primary" data-action="open-gym-form">＋ 添加岩馆</button>
+          <button class="btn btn-ghost" data-action="open-shoe-form">＋ 添加攀岩鞋</button>
+          <button class="btn btn-soft" data-action="seed-one-example">加载 1 条示例</button>
+        </div>
+        <div class="tiny muted mt-16">想先看看功能长什么样？点「加载 1 条示例」；之后可在「我的 → 清空全部数据」回到空白。</div>
+      </div>`;
+  },
+
+
+  renderHome(body) {
+    const sessions = db.sessions.slice().sort((a, b) => b.date.localeCompare(a.date));
+    if (!sessions.length && !db.gyms.length) {
+      this.renderHomeEmpty(body);
+      return;
+    }
+    const month = currentMonth();
+    const monthSessions = sessions.filter((s) => (s.date || '').startsWith(month));
+    const monthRouteIds = new Set(monthSessions.map((s) => s._id));
+    const monthRoutes = db.routes.filter((r) => monthRouteIds.has(r.sessionId));
+    const monthSent = monthRoutes.filter((r) => r.completion === 'flash' || r.completion === 'redpoint').length;
+    const ov = overallStats();
+    refreshGoalProgress();
+    const goals = db.goals.filter((g) => g.status === 'active').slice(0, 3);
+    const reminders = db.gear
+      .filter((g) => g.status !== 'retired')
+      .map((g) => ({ g, rm: gearReminder(g) }))
+      .filter((x) => x.rm.level >= 2);
+    const shoesWorn = db.shoes.filter((s) => s.status === 'active').map((s) => ({ s, per: costPerClimb(s, getShoeResoles(s._id)) }));
+    const recent = sessions.slice(0, 5).map((s) => ({
+      ...s, dateCn: fmt.date(s.date), routeCount: getRoutesOfSession(s._id).length,
+    }));
+    body.innerHTML = `
+      <div class="grid grid-stats">
+        <div class="card stat-card"><div class="stat-num txt-brand">${ov.sessionCount}</div><div class="stat-label">累计攀爬次（会话）</div></div>
+        <div class="card stat-card"><div class="stat-num">${ov.routeCount}</div><div class="stat-label">累计线路条数</div></div>
+        <div class="card stat-card"><div class="stat-num txt-green">${ov.sentCount}</div><div class="stat-label">完攀线路</div></div>
+        <div class="card stat-card"><div class="stat-num">${ov.climbDays}</div><div class="stat-label">攀爬天数</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>本月概览 · ${fmt.monthCn(month)}</span><span class="sub">${monthSessions.length} 个会话 / ${monthRoutes.length} 条线路</span></div>
+        <div class="grid grid-3">
+          <div><div class="stat-num" style="font-size:26px;">${monthSessions.length}</div><div class="stat-label">会话次数</div></div>
+          <div><div class="stat-num" style="font-size:26px;color:var(--green);">${monthSent}</div><div class="stat-label">完攀</div></div>
+          <div><div class="stat-num" style="font-size:26px;">${new Set(monthSessions.map((s) => s.date)).size}</div><div class="stat-label">运动天数</div></div>
+        </div>
+      </div>
+      ${reminders.length ? `<div class="card">
+        <div class="card-title">⚠️ 装备提醒</div>
+        ${reminders.map(({ g, rm }) => `<div class="list-item"><span>${GEAR_TYPE_LABEL[g.type] || '装备'} · ${escapeHTML(g.brand)} ${escapeHTML(g.model)}</span><span class="grow"></span><span class="tag" style="color:${rm.color};border:1.5px solid ${rm.color};">${rm.label}</span><button class="btn btn-soft btn-sm" data-action="gear-detail" data-id="${g._id}">查看</button></div>`).join('')}
+      </div>` : ''}
+      <div class="card">
+        <div class="card-title"><span>🎯 进行中的目标</span><span class="sub" data-action="nav" data-page="profile" style="cursor:pointer;">管理 ›</span></div>
+        ${goals.length ? goals.map((g) => {
+          const pct = Math.min(100, Math.round(((g.currentValue || 0) / (g.targetValue || 1)) * 100));
+          return `<div class="mb-12"><div class="row-between"><span class="t-bold">${escapeHTML(g.title)}</span><span class="tiny">${g.currentValue}/${g.targetValue} ${g.deadline ? '· 截止 ' + g.deadline : ''}</span></div><div class="progress mt-8"><span style="width:${pct}%"></span></div></div>`;
+        }).join('') : '<div class="empty">暂无进行中的目标</div>'}
+      </div>
+      <div class="card">
+        <div class="card-title"><span>📋 最近记录</span><span class="sub" data-action="nav" data-page="log" style="cursor:pointer;">全部 ›</span></div>
+        ${recent.length ? recent.map((s) => `<div class="list-item" style="cursor:pointer;" data-action="session-detail" data-id="${s._id}">
+          <span style="font-size:18px;">${s.gymName.slice(0, 1)}</span>
+          <div class="grow"><div class="t-bold">${escapeHTML(s.gymName)} · ${climbTypeLabel(s.climbType)}</div><div class="tiny muted">${s.dateCn} · ${s.routeCount} 条线路 · ${s.shoeName || '未选鞋'}</div></div>
+          <span class="tag tag-brand">${s.routeCount}条</span>
+        </div>`).join('') : '<div class="empty"><div class="ico">🧗</div>还没有记录，点击右上角「快速记录」开始吧</div>'}
+      </div>
+      <div class="card">
+        <div class="card-title"><span>👟 在用攀岩鞋</span></div>
+        ${shoesWorn.length ? shoesWorn.map(({ s, per }) => {
+          const w = wearInfo(s.wearLevel);
+          return `<div class="list-item"><span class="t-bold">${escapeHTML(s.brand)} ${escapeHTML(s.model)}</span><span class="tiny muted">${SHOE_CATEGORY_LABEL[s.category] || ''} · ${s.climbCount}次</span><span class="grow"></span><span class="tiny" style="color:${w.color};font-weight:600;">${w.label} ${s.wearLevel}%</span><span class="tiny muted">¥${per}/次</span></div>`;
+        }).join('') : '<div class="empty">还没添加攀岩鞋，加一双后这里会自动统计单次成本</div>'}
+      </div>`;
+  },
+
+  /* ============ 记录页 ============ */
+  renderLog(body) {
+    const sessions = db.sessions.slice().sort((a, b) => b.date.localeCompare(a.date));
+    const months = [...new Set(sessions.map((s) => (s.date || '').slice(0, 7)))].sort().reverse();
+    body.innerHTML = `
+      <div class="card">
+        <div class="card-title"><span>记录说明</span></div>
+        <div style="font-size:13px;color:var(--rock-2);line-height:1.8;">
+          一次去岩馆 = 一个「会话」，一个会话内可添加多条线路（如 Flash/Redpoint/尝试中）。
+          保存时会自动关联当日鞋款并累计到该鞋的攀爬次数，同时反写岩馆访问统计。
+        </div>
+        <button class="btn btn-primary w-full mt-12" data-action="quick-start">＋ 开始快速记录</button>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>历史记录</span><span class="sub">共 ${sessions.length} 个会话</span></div>
+        ${sessions.length ? sessions.map((s) => {
+          const routes = getRoutesOfSession(s._id);
+          const sent = routes.filter((r) => r.completion === 'flash' || r.completion === 'redpoint').length;
+          return `<div class="list-item" style="cursor:pointer;" data-action="session-detail" data-id="${s._id}">
+            <div class="grow">
+              <div class="t-bold">${escapeHTML(s.gymName)} <span class="tag ${(Array.isArray(s.climbType) ? s.climbType.includes('boulder') : s.climbType === 'boulder') ? 'tag-brand' : 'tag-blue'}" style="margin-left:6px;">${climbTypeLabel(s.climbType)}</span></div>
+              <div class="tiny muted mt-8">${fmt.date(s.date)} ${s.timeSlot ? TIMESLOT_LABEL[s.timeSlot] : ''} · ${routes.length} 条线路（完攀 ${sent}）· ${s.shoeName || '未选鞋'}</div>
+            </div>
+            <span class="muted">›</span>
+          </div>`;
+        }).join('') : '<div class="empty"><div class="ico">📝</div>暂无记录</div>'}
+      </div>
+      <div class="card">
+        <div class="card-title"><span>按月浏览</span></div>
+        <div class="chips">
+          ${months.map((m) => `<button class="chip" data-action="jump-month" data-month="${m}">${fmt.monthCn(m)}</button>`).join('') || '<span class="muted">暂无</span>'}
+        </div>
+      </div>`;
+  },
+
+  /* ---------- Session 详情 ---------- */
+  openSessionDetail(id) {
+    const s = getSession(id);
+    if (!s) return;
+    const routes = getRoutesOfSession(id);
+    const shoe = getShoe(s.shoeId);
+    const gym = getGym(s.gymId);
+    const gearNames = (s.gearIds || []).map((gid) => { const g = db.gear.find((x) => x._id === gid); return g ? `${GEAR_TYPE_LABEL[g.type] || ''}·${g.model}` : ''; }).filter(Boolean);
+    this.modal(`
+      <div class="modal-head"><h3>${escapeHTML(s.gymName)} · ${fmt.date(s.date)}</h3><button class="modal-close" data-action="close-modal">✕</button></div>
+      <div class="modal-body">
+        <div class="chips mb-16">
+          <span class="tag tag-gray">${climbTypeLabel(s.climbType)}</span>
+          ${s.timeSlot ? `<span class="tag tag-gray">${TIMESLOT_LABEL[s.timeSlot]}</span>` : ''}
+          ${s.bodyCondition ? `<span class="tag tag-green">${BODY_LABEL[s.bodyCondition] || ''}</span>` : ''}
+          ${shoe ? `<span class="tag tag-blue">👟 ${escapeHTML(shoe.brand)} ${escapeHTML(shoe.model)}</span>` : ''}
+          ${gearNames.map((g) => `<span class="tag tag-gray">${escapeHTML(g)}</span>`).join('')}
+        </div>
+        ${s.feeling ? `<div class="tiny muted mb-12">体感：${escapeHTML(s.feeling)}</div>` : ''}
+        <table class="tbl">
+          <tr><th>线路</th><th>等级</th><th>颜色</th><th>完成</th><th>尝试</th></tr>
+          ${routes.map((r) => `<tr>
+            <td>${escapeHTML(r.routeName)}${r.notes ? `<div class="tiny muted">${escapeHTML(r.notes)}</div>` : ''}</td>
+            <td><span class="t-bold">${escapeHTML(r.grade)}</span></td>
+            <td>${r.color ? `<span class="tag tag-gray">${escapeHTML(r.color)}</span>` : '—'}</td>
+            <td><span class="tag" style="background:${COMPLETION_COLOR[r.completion]}22;color:${COMPLETION_COLOR[r.completion]};">${COMPLETION_LABEL[r.completion] || r.completion}</span></td>
+            <td>${r.attempts}</td>
+          </tr>`).join('')}
+        </table>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-danger-soft" data-action="session-delete" data-id="${id}">删除会话</button>
+        <button class="btn btn-soft" data-action="close-modal">关闭</button>
+      </div>`);
+  },
+
+  deleteSessionFlow(id) {
+    confirmModal('删除该会话及其所有线路记录？（鞋款/岩馆计数会同步回退）', () => {
+      deleteSession(id);
+      refreshGoalProgress();
+      this.closeModal();
+      toast('已删除');
+      this.navigate(this.page);
+    }, '确认删除', true);
+  },
+
+  /* ============ 统计页 ============ */
+  renderStats(body) {
+    const sys = this._statsSys || db.settings.preferredGradeSystem || 'v';
+    const ov = overallStats();
+    const trend = monthlyTrend(db.sessions);
+    const gd = gradeDist(sys, true);
+    const styles = styleAnalysis();
+    const tops = gymTop(5);
+    const mls = milestones(sys).slice(-6).reverse();
+    const projects = findProjects().slice(0, 4);
+    body.innerHTML = `
+      <div class="grid grid-stats">
+        <div class="card stat-card"><div class="stat-num">${ov.climbDays}</div><div class="stat-label">累计攀爬天数</div></div>
+        <div class="card stat-card"><div class="stat-num txt-brand">${ov.routeCount}</div><div class="stat-label">总记录条数</div></div>
+        <div class="card stat-card"><div class="stat-num txt-green">${ov.sentCount}</div><div class="stat-label">完攀线路</div></div>
+        <div class="card stat-card"><div class="stat-num">${ov.attemptTotal}</div><div class="stat-label">总尝试次数</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>月度趋势</span></div>
+        <div class="chart-box" id="chartTrend"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">
+          <span>等级分布（完攀）</span>
+          <div class="seg" style="width:200px;">
+            <button class="seg-item ${sys === 'v' ? 'active' : ''}" data-action="grade-sys" data-key="v">V级</button>
+            <button class="seg-item ${sys === 'yds' ? 'active' : ''}" data-action="grade-sys" data-key="yds">YDS</button>
+            <button class="seg-item ${sys === 'font' ? 'active' : ''}" data-action="grade-sys" data-key="font">Font</button>
+          </div>
+        </div>
+        <div class="grid grid-2">
+          <div class="chart-box" id="chartGrade"></div>
+          <div class="chart-box" id="chartGradePie"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>最常去的岩馆 TOP</span></div>
+        <div class="chart-box" id="chartGym"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>擅长风格（完攀数）</span></div>
+        <div class="chart-box" id="chartStyle"></div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-title"><span>等级进阶时间轴（${SYS_LABEL[sys] || sys}）</span></div>
+          ${mls.length ? `<div class="timeline">${mls.map((m) => `<div class="tl-item"><div class="tl-title">${escapeHTML(m.grade)} <span class="tiny muted">${escapeHTML(m.routeName)}</span></div><div class="tl-date">${fmt.date(m.date)} · ${escapeHTML(m.gymName || '')}</div></div>`).join('')}</div>` : '<div class="empty">暂无数据</div>'}
+        </div>
+        <div class="card">
+          <div class="card-title"><span>🚩 项目线路攻坚</span></div>
+          ${projects.length ? projects.map((p) => `<div class="mb-12">
+            <div class="row-between"><span class="t-bold">${escapeHTML(p.routeName)} <span class="tag tag-brand">${escapeHTML(p.grade)}</span></span><span class="tiny">${p.statusLabel}</span></div>
+            <div class="tiny muted mt-8">尝试 ${p.totalAttempts} 次 · ${p.sessionCount} 个会话 · 攻坚 ${p.weeks} 周</div>
+            <div class="progress mt-8"><span style="width:${p.progress}%"></span></div>
+          </div>`).join('') : '<div class="empty">暂无正在攻坚的线路</div>'}
+        </div>
+      </div>`;
+    lineChart(document.getElementById('chartTrend'),
+      trend.map((t) => ({ label: (t.month || '').slice(5) + '月', sessions: t.sessionCount, routes: t.routeCount, sent: t.sentCount })),
+      [{ key: 'sessions', name: '会话' }, { key: 'routes', name: '线路' }, { key: 'sent', name: '完攀' }], { area: true });
+    barChart(document.getElementById('chartGrade'), gd.map((g) => ({ label: g.grade, value: g.value })), { title: '等级分布柱状' });
+    pieChart(document.getElementById('chartGradePie'), gd.map((g) => ({ label: g.grade, value: g.value })), { title: '等级占比' });
+    hBarChart(document.getElementById('chartGym'), tops.map((v) => ({ label: v.name, value: v.count })));
+    hBarChart(document.getElementById('chartStyle'), styles.map((s) => ({ label: s.key, value: s.value })));
+  },
+
+  statsGradeSystem(key) {
+    this._statsSys = key;
+    this.navigate('stats');
+  },
+
+  /* ============ 快速记录向导 ============ */
+  openQuick() {
+    const sessions = db.sessions.slice().sort((a, b) => b.date.localeCompare(a.date));
+    const recentGyms = [];
+    sessions.forEach((s) => { if (!recentGyms.find((g) => g.id === s.gymId)) recentGyms.push({ id: s.gymId, name: s.gymName }); });
+    const favGyms = db.gyms.filter((g) => g.isFavorite);
+    this.quick = {
+      step: 1, gymId: '', climbType: ['boulder'], gradeSystem: db.settings.preferredGradeSystem || 'v',
+      shoeId: db.settings.defaultShoeId || (db.shoes.find((x) => x.status === 'active') || {})._id || '',
+      gearIds: (db.settings.defaultGearIds || []).slice(),
+      bodyCondition: 'good', feeling: '', date: todayStr(), timeSlot: 'evening',
+      routes: [{ routeName: '', grade: '', color: '', completion: 'flash', attempts: 1, styles: [], notes: '' }],
+    };
+    this.quickRecent = recentGyms;
+    this.quickRender();
+  },
+
+  quickRender() {
+    const q = this.quick;
+    const body = (q.step === 1) ? this.quickStepHtml1()
+      : (q.step === 2) ? this.quickStepHtml2()
+      : this.quickStepHtml3();
+    const titles = ['选择岩馆', '攀爬类型与装备', '记录线路'];
+    const root = this.modal(`
+      <div class="modal-head"><h3>快速记录 · ${titles[q.step - 1]}</h3><button class="modal-close" data-action="close-modal">✕</button></div>
+      <div class="modal-body">
+        <div class="steps">
+          ${[1, 2, 3].map((i) => `<span class="step-dot ${i === q.step ? 'active' : i < q.step ? 'done' : ''}"></span>`).join('')}
+        </div>
+        ${body}
+      </div>
+      <div class="modal-foot">
+        ${q.step > 1 ? `<button class="btn btn-soft" data-action="quick-prev">上一步</button>` : ''}
+        ${q.step < 3 ? `<button class="btn btn-primary" data-action="quick-next">下一步</button>` : `<button class="btn btn-primary" data-action="quick-submit">完成记录 ✓</button>`}
+      </div>`);
+  },
+
+  quickStepHtml1() {
+    const q = this.quick;
+    // 去重：按名称唯一（同名保留 visitCount 最高的），同时按 visitCount 降序 + 名称排序
+    const seenId = new Set(), seenName = new Set();
+    const all = db.gyms.slice().sort((a, b) => (b.visitCount || 0) - (a.visitCount || 0) || a.name.localeCompare(b.name)).filter((g) => {
+      if (seenId.has(g._id)) return false;
+      seenId.add(g._id);
+      if (seenName.has(g.name)) return false;
+      seenName.add(g.name);
+      return true;
+    });
+    return `
+      <div class="search-box mb-16"><span>🔍</span><input id="qGymSearch" placeholder="搜索岩馆名称" oninput="window.__gymSearch&&window.__gymSearch(this.value)"></div>
+      <div class="gym-grid" id="qGymList">
+        ${all.length ? all.map((g) => `<div class="gym-card ${q.gymId === g._id ? 'selected' : ''}" data-action="quick-pick-gym" data-id="${g._id}">
+          <div class="g-name">${escapeHTML(g.name)}</div>
+          <div class="g-meta">${g.brandChain && g.brandChain !== '—' ? escapeHTML(g.brandChain) + ' · ' : ''}${g.type === 'crag' ? '野外' : '岩馆'} · 访问 ${g.visitCount || 0} 次</div>
+        </div>`).join('') : '<div class="empty">还没有岩馆，请先在「岩馆」页添加</div>'}
+      </div>
+      <div class="tiny muted mt-12">没有你要找的岩馆？<span class="link" data-action="open-gym-form">＋ 快速添加</span></div>`;
+  },
+
+  quickStepHtml2() {
+    const q = this.quick;
+    const activeShoes = db.shoes.filter((s) => s.status === 'active');
+    const gearTypes = ['chalk_bag', 'harness', 'quickdraw', 'belay', 'helmet', 'rope', 'other'];
+    return `
+      <div class="field">
+        <label>攀爬类型（可多选）</label>
+        <div class="chips">
+          ${['boulder', 'auto', 'top', 'lead'].map((t) => `<button class="chip ${(q.climbType || []).includes(t) ? 'active' : ''}" data-action="quick-type" data-key="${t}">${CLIMB_TYPE_LABEL[t]}</button>`).join('')}
+        </div>
+        <div class="tiny muted">可同时选择多种攀爬方式</div>
+      </div>
+      <div class="field">
+        <label>今日鞋款（计入该鞋攀爬次数）</label>
+        ${activeShoes.length ? `<div class="chips">
+          ${activeShoes.map((s) => {
+            const per = costPerClimb(s, getShoeResoles(s._id));
+            return `<button class="chip ${q.shoeId === s._id ? 'active' : ''}" data-action="quick-shoe" data-id="${s._id}">${escapeHTML(s.brand)} ${escapeHTML(s.model)} · ${s.climbCount}次 · ¥${per}/次</button>`;
+          }).join('')}
+        </div>` : '<div class="muted tiny">暂无在用鞋，请先在「装备」页添加</div>'}
+      </div>
+      <div class="field">
+        <label>当日装备（自动带出默认项，可勾选调整）</label>
+        <div class="chips">
+          ${gearTypes.map((t) => {
+            const items = db.gear.filter((g) => g.type === t && g.status !== 'retired');
+            if (!items.length) return '';
+            const checkedAll = items.every((g) => q.gearIds.includes(g._id));
+            return items.map((g) => `<button class="chip ${q.gearIds.includes(g._id) ? 'active' : ''}" data-action="quick-gear" data-id="${g._id}">${GEAR_TYPE_LABEL[t]}·${escapeHTML(g.model)}</button>`).join('');
+          }).join('') || '<span class="muted tiny">暂无装备</span>'}
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="field"><label>日期</label><input class="input" type="date" id="qDate" value="${q.date}" onchange="window.__qDate&&window.__qDate(this.value)"></div>
+        <div class="field"><label>时段</label>
+          <select class="select" id="qTime" onchange="window.__qTime&&window.__qTime(this.value)">
+            ${['morning', 'afternoon', 'evening', 'night'].map((t) => `<option value="${t}" ${q.timeSlot === t ? 'selected' : ''}>${TIMESLOT_LABEL[t]}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>身体状态</label>
+        <div class="seg">
+          ${['great', 'good', 'tired', 'injured'].map((b) => `<button class="seg-item ${q.bodyCondition === b ? 'active' : ''}" data-action="quick-body" data-key="${b}">${BODY_LABEL[b]}</button>`).join('')}
+        </div>
+      </div>
+      <div class="field"><label>体感备注（选填）</label><input class="input" id="qFeeling" placeholder="状态爆棚 / 手指微痛…" oninput="window.__qFeeling&&window.__qFeeling(this.value)"></div>`;
+  },
+
+  quickStepHtml3() {
+    const q = this.quick;
+    const activeShoes = db.shoes.filter((s) => s.status === 'active');
+    const gradeOptions = GRADES[q.gradeSystem] || GRADES.v;
+    return `
+      <div class="row-between mb-12">
+        <span class="t-bold">♀️ ${q.gymName || ''} · ${climbTypeLabel(q.climbType)} · ${SYS_LABEL[q.gradeSystem]}</span>
+        <span class="tiny muted">👟 ${q.shoeName || (activeShoes.length ? '未选' : '')}</span>
+      </div>
+      <div id="qRoutes">
+        ${q.routes.map((r, i) => `
+          <div class="route-edit">
+            <div class="re-head">
+              <input class="input grow qr-name" value="${escapeHTML(r.routeName)}" placeholder="线路名（如：橙墙-A01）" data-i="${i}">
+              <select class="select re-grade qr-grade" data-i="${i}">
+                <option value="">等级…</option>
+                ${gradeOptions.map((gg) => `<option value="${gg}" ${r.grade === gg ? 'selected' : ''}>${gg}</option>`).join('')}
+              </select>
+              <input class="input re-color qr-color" value="${escapeHTML(r.color || '')}" placeholder="颜色" data-i="${i}">
+            </div>
+            <div class="re-head mt-8">
+              ${['flash', 'redpoint', 'project', 'failed'].map((c) => `<button class="chip qr-comp ${r.completion === c ? 'active' : ''}" data-comp="${c}" data-i="${i}">${COMPLETION_LABEL[c]}</button>`).join('')}
+              <span class="tiny muted">尝试次数</span>
+              <input class="input re-attempt qr-attempt" type="number" min="1" value="${r.attempts}" data-i="${i}">
+            </div>
+            <div class="re-head mt-8" style="align-items:center;">
+              <span class="tiny muted">风格</span>
+              <button class="chip qr-style ${(r.styles || []).includes('balance') ? 'active' : ''}" data-style="balance" data-i="${i}">平衡</button>
+              <button class="chip qr-style ${(r.styles || []).includes('power') ? 'active' : ''}" data-style="power" data-i="${i}">力量</button>
+              <button class="chip qr-style ${(r.styles || []).includes('dynamic') ? 'active' : ''}" data-style="dynamic" data-i="${i}">动态</button>
+              <button class="chip qr-style ${(r.styles || []).includes('finger') ? 'active' : ''}" data-style="finger" data-i="${i}">指力</button>
+              <button class="chip qr-style ${(r.styles || []).includes('crack') ? 'active' : ''}" data-style="crack" data-i="${i}">裂缝</button>
+              <button class="chip qr-style ${(r.styles || []).includes('endurance') ? 'active' : ''}" data-style="endurance" data-i="${i}">耐力</button>
+              <button class="btn btn-soft btn-sm re-del" data-action="delete-route-edit" data-idx="${i}">删除</button>
+            </div>
+          </div>`).join('')}
+      </div>
+      <button class="btn btn-ghost w-full" data-action="add-quick-route">＋ 添加下一条线路</button>
+      <div class="field mt-12"><label>备注（选填）</label><textarea class="textarea" id="qNotes" placeholder="本次整体感受…"></textarea></div>`;
+  },
+
+  quickPickGym(id) {
+    const g = getGym(id);
+    if (!g) return;
+    this.quick.gymId = id;
+    this.quick.gymName = g.name;
+    // 智能默认：上次在该馆的类型/系统
+    const last = db.sessions.filter((s) => s.gymId === id).sort((a, b) => b.date.localeCompare(a.date))[0];
+    if (last) {
+      this.quick.climbType = last.climbType;
+      this.quick.gradeSystem = last.gradeSystem;
+      if (last.shoeId) this.quick.shoeId = last.shoeId;
+    }
+    this.quickRender();
+  },
+  quickSetType(key) {
+    this.quick.climbType = key;
+    this.quick.gradeSystem = key === 'boulder' ? (this.quick.gradeSystem === 'yds' ? 'v' : this.quick.gradeSystem)
+      : (this.quick.gradeSystem === 'v' || this.quick.gradeSystem === 'font' ? 'yds' : this.quick.gradeSystem);
+    this.quickRender();
+  },
+  // quickSetShoe / quickSetBody 已内联到 onClick handler 中做局部更新
+  quickNext() {
+    const q = this.quick;
+    if (q.step === 1) {
+      if (!q.gymId) { toast('请先选择岩馆'); return; }
+      // 兜底：无可用鞋时给空
+      q.step = 2; this.quickRender(); return;
+    }
+    if (q.step === 2) { q.step = 3; this.quickRender(); return; }
+  },
+  quickPrev() { if (this.quick.step > 1) { this.quick.step--; this.quickRender(); } },
+
+  addQuickRoute() {
+    const q = this.quick;
+    const last = q.routes[q.routes.length - 1];
+    const nextGrade = last.grade ? bumpGrade(last.grade, -1, q.gradeSystem) : '';
+    q.routes.push({ routeName: '', grade: nextGrade, color: '', completion: 'redpoint', attempts: 1, styles: [], notes: '' });
+    this.quickRender();
+  },
+  removeQuickRoute(idx) {
+    if (this.quick.routes.length <= 1) { toast('至少保留一条线路'); return; }
+    this.quick.routes.splice(idx, 1);
+    this.quickRender();
+  },
+
+  quickSubmit() {
+    const q = this.quick;
+    if (!q.gymId) return toast('缺少岩馆');
+    // 读取表单值
+    const qrNames = Array.from(document.querySelectorAll('.qr-name'));
+    const qrGrades = Array.from(document.querySelectorAll('.qr-grade'));
+    const qrColors = Array.from(document.querySelectorAll('.qr-color'));
+    const qrComps = Array.from(document.querySelectorAll('.qr-comp'));
+    const qrAttempts = Array.from(document.querySelectorAll('.qr-attempt'));
+    q.routes = q.routes.map((r, i) => {
+      const grade = qrGrades[i] ? qrGrades[i].value : r.grade;
+      const comps = qrComps.filter((c) => Number(c.dataset.i) === i);
+      const comp = comps.find((c) => c.classList.contains('active'));
+      const styles = Array.from(document.querySelectorAll('.qr-style')).filter((s) => Number(s.dataset.i) === i && s.classList.contains('active')).map((s) => s.dataset.style);
+      return {
+        routeName: (qrNames[i] ? qrNames[i].value : r.routeName) || '',
+        grade, color: qrColors[i] ? qrColors[i].value : r.color,
+        completion: comp ? comp.dataset.comp : 'failed',
+        attempts: Math.max(1, Number(qrAttempts[i] ? qrAttempts[i].value : r.attempts) || 1),
+        styles, notes: '',
+      };
+    });
+    const validRoutes = q.routes.filter((r) => r.routeName.trim() && r.grade);
+    if (!validRoutes.length) return toast('至少填写一条有名称和等级的线路');
+    const shoe = getShoe(q.shoeId);
+    const sessionData = {
+      date: document.getElementById('qDate') ? document.getElementById('qDate').value : q.date,
+      timeSlot: document.getElementById('qTime') ? document.getElementById('qTime').value : q.timeSlot,
+      gymId: q.gymId, gymName: q.gymName, climbType: q.climbType, gradeSystem: q.gradeSystem,
+      shoeId: q.shoeId || '', shoeName: shoe ? shoe.model : '',
+      gearIds: q.gearIds, bodyCondition: q.bodyCondition,
+      feeling: document.getElementById('qFeeling') ? document.getElementById('qFeeling').value : q.feeling,
+      notes: document.getElementById('qNotes') ? document.getElementById('qNotes').value : '',
+    };
+    createSession(sessionData, validRoutes.map((r) => ({ ...r, gradeSystem: sessionData.gradeSystem })));
+    refreshGoalProgress();
+    const fresh = syncBadges();
+    this.closeModal();
+    this.quick = null;
+    toast(fresh ? `记录完成 + 解锁 ${fresh} 个徽章` : '记录完成 ✓');
+    this.navigate('log');
+  },
+
+  /* ============ 装备页 ============ */
+  renderGear(body) {
+    const activeShoes = db.shoes.filter((s) => s.status !== 'retired').sort((a, b) => b.climbCount - a.climbCount);
+    const retiredShoes = db.shoes.filter((s) => s.status === 'retired');
+    const gearList = db.gear.filter((g) => g.type !== 'shoes');
+    const shoeHtml = (s) => {
+      const per = costPerClimb(s, getShoeResoles(s._id));
+      const w = wearInfo(s.wearLevel);
+
+      const { realCost, resoleCount } = shoeRealCost(s, getShoeResoles(s._id));
+      return `<div class="gear-card">
+        <div class="row-between">
+          <div><div class="g-name">${escapeHTML(s.brand)} ${escapeHTML(s.model)}</div><div class="g-sub">${SHOE_CATEGORY_LABEL[s.category] || ''} · 购于 ${s.purchaseDate} · ¥${s.purchasePrice}</div></div>
+          <span class="tag ${s.status === 'active' ? 'tag-green' : 'tag-gray'}">${s.status === 'active' ? '在用' : '已退役'}</span>
+        </div>
+        <div class="row mt-12 wrap" style="gap:14px;">
+          <div><div class="stat-num" style="font-size:20px;">${s.climbCount}</div><div class="stat-label">攀爬次数</div></div>
+          <div><div class="stat-num" style="font-size:20px;color:var(--brand);">¥${per}</div><div class="stat-label">单次成本</div></div>
+          <div><div class="stat-num" style="font-size:20px;">¥${realCost}</div><div class="stat-label">真实成本${resoleCount ? '（含换底）' : ''}</div></div>
+        </div>
+        <div class="cost-bar"><span class="tiny muted" style="color:${w.color};font-weight:600;">${w.label} ${s.wearLevel}%</span><div class="progress grow"><span style="width:${s.wearLevel}%;${s.wearLevel > 60 ? 'background:var(--brand)' : ''}"></span></div></div>
+        <div class="row mt-12 wrap">
+          <button class="btn btn-soft btn-sm" data-action="shoe-detail" data-id="${s._id}">详情</button>
+          <button class="btn btn-soft btn-sm" data-action="shoe-edit" data-id="${s._id}">编辑</button>
+          ${s.status === 'active' ? `<button class="btn btn-soft btn-sm" data-action="shoe-resole" data-id="${s._id}">换底</button><button class="btn btn-soft btn-sm" data-action="shoe-retire" data-id="${s._id}">退役</button>` : `<button class="btn btn-soft btn-sm" data-action="shoe-active" data-id="${s._id}">恢复在用</button>`}
+          ${s.status !== 'active' ? `<button class="btn btn-danger-soft btn-sm" data-action="shoe-delete" data-id="${s._id}">删除</button>` : ''}
+        </div>
+      </div>`;
+    };
+    const gearHtml = (g) => {
+      const rm = gearReminder(g);
+      return `<div class="gear-card">
+        <div class="row-between">
+          <div><div class="g-name">${GEAR_TYPE_LABEL[g.type] || '装备'} · ${escapeHTML(g.brand)} ${escapeHTML(g.model)}</div>
+          <div class="g-sub">${g.certification ? '认证 ' + escapeHTML(g.certification) + ' · ' : ''}购于 ${g.purchaseDate || '—'}${g.purchasePrice ? ' · ¥' + g.purchasePrice : ''}</div></div>
+          ${g.isDefault ? '<span class="tag tag-blue">默认</span>' : ''}
+        </div>
+        <div class="tiny mt-8" style="color:${rm.color};font-weight:600;">服役：${rm.label}</div>
+        <div class="row mt-12">
+          <button class="btn btn-soft btn-sm" data-action="gear-detail" data-id="${g._id}">详情</button>
+          <button class="btn btn-soft btn-sm" data-action="gear-edit" data-id="${g._id}">编辑</button>
+          ${g.status !== 'retired' ? `<button class="btn btn-soft btn-sm" data-action="gear-retire" data-id="${g._id}">退役</button>` : ''}
+          <button class="btn btn-danger-soft btn-sm" data-action="gear-delete" data-id="${g._id}">删除</button>
+        </div>
+      </div>`;
+    };
+    body.innerHTML = `
+      <div class="card">
+        <div class="card-title"><span>👟 攀岩鞋</span><span class="sub">真实成本 = 购价 + Σ换底 → 单次成本实时更新</span></div>
+        <div class="gear-grid">${activeShoes.map(shoeHtml).join('') || '<div class="empty">暂无用鞋，点击右上角「添加攀岩鞋」</div>'}</div>
+        ${retiredShoes.length ? `<div class="mt-16"><div class="card-title" style="font-size:14px;">已退役</div><div class="gear-grid">${retiredShoes.map(shoeHtml).join('')}</div></div>` : ''}
+      </div>
+      <div class="card">
+        <div class="card-title"><span>🎒 装备库</span><span class="sub">镁粉袋 / 安全带 / 快挂…</span></div>
+        <div class="gear-grid">${gearList.map(gearHtml).join('') || '<div class="empty">暂无装备</div>'}</div>
+      </div>`;
+  },
+
+  /* ---------- 鞋详情 ---------- */
+  openShoeDetail(id) {
+    const s = getShoe(id);
+    if (!s) return;
+    const resoles = getShoeResoles(id);
+    const { realCost, purchase, resoleCost, resoleCount } = shoeRealCost(s, resoles);
+    const per = costPerClimb(s, resoles);
+    const w = wearInfo(s.wearLevel);
+    const reviews = db.reviews.filter((r) => r.shoeId === id);
+    const gymName = (gid) => { const g = getGym(gid); return g ? g.name : '—'; };
+    this.modal(`
+      <div class="modal-head"><h3>${escapeHTML(s.brand)} ${escapeHTML(s.model)}</h3><button class="modal-close" data-action="close-modal">✕</button></div>
+      <div class="modal-body">
+        <div class="grid grid-3 mb-12">
+          <div><div class="stat-num" style="font-size:24px;">${s.climbCount}</div><div class="stat-label">攀爬次数</div></div>
+          <div><div class="stat-num" style="font-size:24px;color:var(--brand);">¥${per}</div><div class="stat-label">单次成本</div></div>
+          <div><div class="stat-num" style="font-size:24px;">¥${realCost}</div><div class="stat-label">真实成本</div></div>
+        </div>
+        <div class="tiny muted mb-8">购价 ¥${purchase}${resoleCount ? ` · 换底 ${resoleCount} 次共 ¥${resoleCost}` : ''} · ${SHOE_CATEGORY_LABEL[s.category] || ''} · ${s.isDiscontinued ? '已停产绝版' : '在产'} · 磨损 ${w.label} ${s.wearLevel}%</div>
+        <div class="card-title" style="font-size:14px;">换底记录</div>
+        ${resoles.length ? `<table class="tbl mb-12">${resoles.map((r) => `<tr><td>${r.resoleDate}</td><td>¥${r.cost}</td><td class="tiny muted">${escapeHTML(r.provider || '')}</td></tr>`).join('')}</table>` : '<div class="empty" style="padding:16px;">暂无换底记录</div>'}
+        <button class="btn btn-ghost btn-sm" data-action="shoe-resole" data-id="${id}">＋ 添加换底</button>
+        <div class="card-title mt-16" style="font-size:14px;">岩馆表现评分</div>
+        ${reviews.length ? `<table class="tbl mb-12">${reviews.map((r) => `<tr><td>${escapeHTML(gymName(r.gymId))}</td><td class="tiny">${WALL_TYPE_LABEL[r.wallType] || r.wallType}</td><td class="t-bold" style="color:var(--brand);">${r.rating}/5</td></tr>`).join('')}</table>` : '<div class="empty" style="padding:16px;">暂无评分</div>'}
+        <button class="btn btn-ghost btn-sm" data-action="shoe-review" data-id="${id}">＋ 添加评分</button>
+      </div>
+      <div class="modal-foot"><button class="btn btn-soft" data-action="close-modal">关闭</button></div>`);
+  },
+
+  /* ---------- 表单：鞋 ---------- */
+  openShoeForm(id) {
+    const s = id ? getShoe(id) : null;
+    const brands = ['La Sportiva', 'Scarpa', 'Soill', 'Five Ten', 'Butora', 'Mad Rock', 'Boreal', '其他'];
+    const cats = Object.entries(SHOE_CATEGORY_LABEL);
+    this.modal(`
+      <div class="modal-head"><h3>${s ? '编辑攀岩鞋' : '添加攀岩鞋'}</h3><button class="modal-close" data-action="close-modal">✕</button></div>
+      <div class="modal-body">
+        <div class="grid grid-2">
+          <div class="field"><label>品牌<span class="req">*</span></label>
+            <select class="select" id="shoeBrand">${brands.map((b) => `<option ${s && s.brand === b ? 'selected' : ''}>${b}</option>`).join('')}</select></div>
+          <div class="field"><label>型号<span class="req">*</span></label><input class="input" id="shoeModel" value="${s ? escapeHTML(s.model) : ''}" placeholder="如 Solution Comp"></div>
+        </div>
+        <div class="field"><label>鞋型分类</label>
+          <div class="chips" id="shoeCats">${cats.map(([k, v]) => `<button type="button" class="chip ${s && s.category === k ? 'active' : (!s && k === 'allround' ? 'active' : '')}" data-k="${k}">${v}</button>`).join('')}</div></div>
+        <div class="grid grid-3">
+          <div class="field"><label>购买价格(¥)</label><input class="input" type="number" id="shoePrice" value="${s ? s.purchasePrice : ''}"></div>
+          <div class="field"><label>购买日期</label><input class="input" type="date" id="shoeDate" value="${s ? s.purchaseDate : todayStr()}"></div>
+          <div class="field"><label>磨损指数(0-100)</label><input class="input" type="number" min="0" max="100" id="shoeWear" value="${s ? s.wearLevel : 0}"></div>
+        </div>
+        <div class="field"><label class="row"><input type="checkbox" id="shoeDisc" ${s && s.isDiscontinued ? 'checked' : ''}> 已停产绝版</label></div>
+        <div class="field"><label>备注</label><input class="input" id="shoeNotes" value="${s ? escapeHTML(s.notes || '') : ''}"></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-soft" data-action="close-modal">取消</button>
+        <button class="btn btn-primary" data-action="save-shoe" data-id="${s ? s._id : ''}">保存</button>
+      </div>`);
+    // 点击分类 chip
+    document.querySelectorAll('#shoeCats .chip').forEach((c) => c.addEventListener('click', () => {
+      document.querySelectorAll('#shoeCats .chip').forEach((x) => x.classList.remove('active'));
+      c.classList.add('active');
+    }));
+  },
+  saveShoe() {
+    const id = document.querySelector('[data-action="save-shoe"]').dataset.id;
+    const brand = document.getElementById('shoeBrand').value;
+    const model = document.getElementById('shoeModel').value.trim();
+    if (!model) return toast('请填写型号');
+    const catEl = document.querySelector('#shoeCats .chip.active');
+    const data = {
+      brand, model,
+      category: catEl ? catEl.dataset.k : 'allround',
+      purchasePrice: Number(document.getElementById('shoePrice').value) || 0,
+      purchaseDate: document.getElementById('shoeDate').value,
+      wearLevel: Math.max(0, Math.min(100, Number(document.getElementById('shoeWear').value) || 0)),
+      isDiscontinued: document.getElementById('shoeDisc').checked,
+      notes: document.getElementById('shoeNotes').value,
+      status: 'active',
+    };
+    if (id) { updateDoc('shoes', id, data); toast('已更新'); }
+    else { createDoc('shoes', data); toast('已添加'); }
+    this.closeModal();
+    this.navigate('gear');
+  },
+
+  /* ---------- 换底 ---------- */
+  openResole(shoeId) {
+    this._resoleShoeId = shoeId;
+    this.modal(`
+      <div class="modal-head"><h3>添加换底记录</h3><button class="modal-close" data-action="close-modal">✕</button></div>
+      <div class="modal-body">
+        <div class="grid grid-3">
+          <div class="field"><label>换底日期</label><input class="input" type="date" id="resoleDate" value="${todayStr()}"></div>
+          <div class="field"><label>费用(¥)</label><input class="input" type="number" id="resoleCost" placeholder="如 280"></div>
+          <div class="field"><label>服务商</label><input class="input" id="resoleProvider" placeholder="如 换底工坊"></div>
+        </div>
+        <div class="tiny muted">保存后：磨损指数重置为 0，费用叠加进真实成本。</div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-soft" data-action="close-modal">取消</button><button class="btn btn-primary" data-action="save-resole">保存</button></div>`);
+  },
+  saveResole() {
+    const shoeId = this._resoleShoeId;
+    const cost = Number(document.getElementById('resoleCost').value);
+    if (!cost) return toast('请填写费用');
+    addResole(shoeId, {
+      resoleDate: document.getElementById('resoleDate').value,
+      cost,
+      provider: document.getElementById('resoleProvider').value.trim(),
+    });
+    toast('换底记录已保存，磨损已重置');
+    this.closeModal();
+    this.navigate('gear');
+  },
+
+  /* ---------- 评分 ---------- */
+  openReview(shoeId) {
+    this._reviewShoeId = shoeId;
+    const gms = db.gyms.map((g) => `<option value="${g._id}">${escapeHTML(g.name)}</option>`).join('');
+    this.modal(`
+      <div class="modal-head"><h3>添加鞋款评分</h3><button class="modal-close" data-action="close-modal">✕</button></div>
+      <div class="modal-body">
+        <div class="grid grid-2">
+          <div class="field"><label>岩馆</label><select class="select" id="revGym">${gms}</select></div>
+          <div class="field"><label>岩壁类型</label><select class="select" id="revWall">${Object.entries(WALL_TYPE_LABEL).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+        </div>
+        <div class="field"><label>综合评分</label><input class="input" type="range" min="1" max="5" step="0.5" id="revRating" value="4" oninput="document.getElementById('revRatingTxt').textContent=this.value"><span id="revRatingTxt" class="t-bold" style="color:var(--brand);">4</span></div>
+        <div class="field"><label>备注</label><input class="input" id="revNotes" placeholder="抓地/触感/舒适感受…"></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-soft" data-action="close-modal">取消</button><button class="btn btn-primary" data-action="save-review">保存</button></div>`);
+  },
+  saveReview() {
+    createDoc('reviews', {
+      shoeId: this._reviewShoeId,
+      gymId: document.getElementById('revGym').value,
+      wallType: document.getElementById('revWall').value,
+      rating: Number(document.getElementById('revRating').value) || 3,
+      notes: document.getElementById('revNotes').value.trim(),
+    });
+    toast('评分已添加');
+    this.closeModal();
+    this.navigate('gear');
+  },
+
+  retireShoe(id) {
+    confirmModal('确认将该鞋退役？退役后不再计入单次成本排行，但记录保留。', () => {
+      updateDoc('shoes', id, { status: 'retired', retiredDate: todayStr() });
+      toast('已退役');
+      this.navigate('gear');
+    }, '确认退役');
+  },
+  activateShoe(id) {
+    updateDoc('shoes', id, { status: 'active', retiredDate: '' });
+    toast('已恢复在用');
+    this.navigate('gear');
+  },
+  deleteShoeFlow(id) {
+    confirmModal('删除该鞋档案？关联的换底记录与评分会一并删除（历史攀爬记录不受影响）。', () => {
+      db.resoles = db.resoles.filter((r) => r.shoeId !== id);
+      db.reviews = db.reviews.filter((r) => r.shoeId !== id);
+      deleteDoc('shoes', id);
+      toast('已删除');
+      this.navigate('gear');
+    }, '确认删除', true);
+  },
+
+  /* ---------- 装备表单 ---------- */
+  openGearForm(id) {
+    const g = id ? db.gear.find((x) => x._id === id) : null;
+    const types = Object.entries(GEAR_TYPE_LABEL);
+    this.modal(`
+      <div class="modal-head"><h3>${g ? '编辑装备' : '添加装备'}</h3><button class="modal-close" data-action="close-modal">✕</button></div>
+      <div class="modal-body">
+        <div class="field"><label>装备类型</label><div class="chips" id="gearTypes">${types.map(([k, v]) => `<button type="button" class="chip ${g && g.type === k ? 'active' : (!g && k === 'chalk_bag' ? 'active' : '')}" data-k="${k}">${v}</button>`).join('')}</div></div>
+        <div class="grid grid-2">
+          <div class="field"><label>品牌</label><input class="input" id="gearBrand" value="${g ? escapeHTML(g.brand) : ''}"></div>
+          <div class="field"><label>型号</label><input class="input" id="gearModel" value="${g ? escapeHTML(g.model) : ''}"></div>
+        </div>
+        <div class="grid grid-3">
+          <div class="field"><label>认证标准</label><select class="select" id="gearCert"><option value="">无</option><option ${g && g.certification === 'UIAA' ? 'selected' : ''}>UIAA</option><option ${g && g.certification === 'CE' ? 'selected' : ''}>CE</option><option ${g && g.certification === 'UIAA+CE' ? 'selected' : ''}>UIAA+CE</option></select></div>
+          <div class="field"><label>购买价格(¥)</label><input class="input" type="number" id="gearPrice" value="${g ? g.purchasePrice : ''}"></div>
+          <div class="field"><label>服役年限(年)</label><input class="input" type="number" min="0" id="gearLife" value="${g ? g.serviceLifeYears : (g && g.type === 'harness' ? 5 : 0)}" placeholder="安全带建议5"></div>
+        </div>
+        <div class="grid grid-2">
+          <div class="field"><label>购买日期</label><input class="input" type="date" id="gearDate" value="${g ? g.purchaseDate : todayStr()}"></div>
+          <div class="field"><label class="row"><input type="checkbox" id="gearDefault" ${g && g.isDefault ? 'checked' : ''}> 设为默认（快速记录带出）</label></div>
+        </div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-soft" data-action="close-modal">取消</button><button class="btn btn-primary" data-action="save-gear" data-id="${g ? g._id : ''}">保存</button></div>`);
+    document.querySelectorAll('#gearTypes .chip').forEach((c) => c.addEventListener('click', () => {
+      document.querySelectorAll('#gearTypes .chip').forEach((x) => x.classList.remove('active'));
+      c.classList.add('active');
+    }));
+  },
+  saveGear() {
+    const id = document.querySelector('[data-action="save-gear"]').dataset.id;
+    const typeEl = document.querySelector('#gearTypes .chip.active');
+    const data = {
+      type: typeEl ? typeEl.dataset.k : 'other',
+      brand: document.getElementById('gearBrand').value.trim(),
+      model: document.getElementById('gearModel').value.trim(),
+      certification: document.getElementById('gearCert').value,
+      purchasePrice: Number(document.getElementById('gearPrice').value) || 0,
+      serviceLifeYears: Number(document.getElementById('gearLife').value) || 0,
+      purchaseDate: document.getElementById('gearDate').value,
+      isDefault: document.getElementById('gearDefault').checked,
+      status: 'active',
+    };
+    if (!data.model) return toast('请填写型号');
+    if (id) { updateDoc('gear', id, data); toast('已更新'); }
+    else { createDoc('gear', data); toast('已添加'); }
+    this.closeModal();
+    this.navigate('gear');
+  },
+  openGearDetail(id) {
+    const g = db.gear.find((x) => x._id === id);
+    if (!g) return;
+    const rm = gearReminder(g);
+    const used = db.sessions.filter((s) => (s.gearIds || []).includes(id)).length;
+    this.modal(`
+      <div class="modal-head"><h3>${GEAR_TYPE_LABEL[g.type] || '装备'} · ${escapeHTML(g.brand)} ${escapeHTML(g.model)}</h3><button class="modal-close" data-action="close-modal">✕</button></div>
+      <div class="modal-body">
+        <div class="grid grid-3 mb-12">
+          <div><div class="stat-num" style="font-size:24px;">${used}</div><div class="stat-label">使用次数</div></div>
+          <div><div class="stat-num" style="font-size:24px;">${g.serviceLifeYears || '—'}</div><div class="stat-label">服役年限(年)</div></div>
+          <div><div class="stat-num" style="font-size:24px;color:${rm.color};">${rm.label}</div><div class="stat-label">服役状态</div></div>
+        </div>
+        <div class="tiny muted">${g.certification ? '认证：' + escapeHTML(g.certification) + ' · ' : ''}购于 ${g.purchaseDate || '—'} · ¥${g.purchasePrice || 0} · ${g.isDefault ? '默认装备' : '非默认'}</div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-soft" data-action="close-modal">关闭</button></div>`);
+  },
+  retireGear(id) {
+    confirmModal('标记该装备退役？', () => { updateDoc('gear', id, { status: 'retired', retireDate: todayStr() }); toast('已退役'); this.navigate('gear'); }, '确认退役');
+  },
+  deleteGearFlow(id) {
+    confirmModal('删除该装备？', () => { deleteDoc('gear', id); toast('已删除'); this.navigate('gear'); }, '确认删除', true);
+  },
+
+  /* ============ 岩馆页 ============ */
+  renderGyms(body) {
+    const seenId = new Set(), seenName = new Set();
+    const list = db.gyms.slice().sort((a, b) => (b.visitCount || 0) - (a.visitCount || 0)).filter((g) => {
+      if (seenId.has(g._id)) return false;
+      seenId.add(g._id);
+      if (seenName.has(g.name)) return false;
+      seenName.add(g.name);
+      return true;
+    });
+    const usedSessions = (gid) => db.sessions.filter((s) => s.gymId === gid).length;
+    body.innerHTML = `
+      <div class="card">
+        <div class="card-title"><span>岩馆/岩场库</span><span class="sub">共 ${list.length} 个地点</span></div>
+        ${list.length ? `<div class="gym-grid">
+          ${list.map((g) => `<div class="gym-card">
+            <div class="row-between">
+              <div class="g-name">${escapeHTML(g.name)} ${g.isFavorite ? '⭐' : ''}</div>
+              <span class="tag ${g.type === 'crag' ? 'tag-blue' : 'tag-brand'}">${g.type === 'crag' ? '野外' : '岩馆'}</span>
+            </div>
+            <div class="g-meta">${g.brandChain && g.brandChain !== '—' ? escapeHTML(g.brandChain) + ' · ' : ''}${escapeHTML(g.address || '未填地址')}</div>
+            <div class="g-meta">访问 ${g.visitCount || 0} 次${g.lastVisitAt ? ' · 最近 ' + g.lastVisitAt : ''} · 记录 ${usedSessions(g._id)} 会话</div>
+            ${g.wallTypes && g.wallTypes.length ? `<div class="row mt-8 wrap">${g.wallTypes.map((w) => `<span class="tag tag-gray tiny">${CLIMB_TYPE_LABEL[w] || w}</span>`).join('')}</div>` : ''}
+            <div class="row mt-12">
+              <button class="btn btn-soft btn-sm" data-action="gym-edit" data-id="${g._id}">编辑</button>
+              <button class="btn btn-soft btn-sm" data-action="gym-fav" data-id="${g._id}">${g.isFavorite ? '取消收藏' : '收藏'}</button>
+              <button class="btn btn-danger-soft btn-sm" data-action="gym-delete" data-id="${g._id}">删除</button>
+            </div>
+          </div>`).join('')}
+        </div>` : '<div class="empty"><div class="ico">🧗</div>暂无岩馆，点击右上角添加</div>'}
+      </div>`;
+  },
+
+  openGymForm(id) {
+    const g = id ? getGym(id) : null;
+    this.modal(`
+      <div class="modal-head"><h3>${g ? '编辑岩馆' : '添加岩馆/岩场'}</h3><button class="modal-close" data-action="close-modal">✕</button></div>
+      <div class="modal-body">
+        <div class="grid grid-2">
+          <div class="field"><label>名称<span class="req">*</span></label><input class="input" id="gymName" value="${g ? escapeHTML(g.name) : ''}" placeholder="如：香蕉攀岩·小月河店"></div>
+          <div class="field"><label>品牌连锁</label><input class="input" id="gymChain" value="${g ? escapeHTML(g.brandChain || '') : ''}" placeholder="如：香蕉攀岩"></div>
+        </div>
+        <div class="grid grid-2">
+          <div class="field"><label>类型</label><select class="select" id="gymType"><option value="gym" ${!g || g.type === 'gym' ? 'selected' : ''}>室内岩馆</option><option value="crag" ${g && g.type === 'crag' ? 'selected' : ''}>野外岩场</option></select></div>
+          <div class="field"><label>地址</label><input class="input" id="gymAddr" value="${g ? escapeHTML(g.address || '') : ''}" placeholder="如：北京市朝阳区…"></div>
+        </div>
+        <div class="field"><label>岩壁类型</label><div class="chips" id="gymWalls">
+          ${['boulder', 'auto', 'lead', 'toprope'].map((w) => `<button type="button" class="chip ${g && g.wallTypes && g.wallTypes.includes(w) ? 'active' : ''}" data-k="${w}">${CLIMB_TYPE_LABEL[w]}</button>`).join('')}
+        </div></div>
+        <div class="field"><label>风格标签</label>
+          <div class="chips" id="gymStyles">${['balance', 'power', 'dynamic', 'finger', 'crack', 'slab', 'overhang'].map((st) => `<button type="button" class="chip ${g && g.styleTags && g.styleTags.includes(st) ? 'active' : ''}" data-k="${st}">${st}</button>`).join('')}</div></div>
+        <div class="field"><label>个人备注</label><input class="input" id="gymNotes" value="${g ? escapeHTML(g.notes || '') : ''}"></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-soft" data-action="close-modal">取消</button><button class="btn btn-primary" data-action="save-gym" data-id="${g ? g._id : ''}">保存</button></div>`);
+    document.querySelectorAll('#gymWalls .chip, #gymStyles .chip').forEach((c) => c.addEventListener('click', () => c.classList.toggle('active')));
+  },
+  saveGym() {
+    const id = document.querySelector('[data-action="save-gym"]').dataset.id;
+    const name = document.getElementById('gymName').value.trim();
+    if (!name) return toast('请填写名称');
+    const dup = db.gyms.find((g) => g.name === name && g._id !== (id || ''));
+    if (dup) { toast('该名称岩馆已存在'); return; }
+    const walls = Array.from(document.querySelectorAll('#gymWalls .chip.active')).map((c) => c.dataset.k);
+    const styles = Array.from(document.querySelectorAll('#gymStyles .chip.active')).map((c) => c.dataset.k);
+    const data = {
+      name, brandChain: document.getElementById('gymChain').value.trim() || '—',
+      type: document.getElementById('gymType').value,
+      address: document.getElementById('gymAddr').value.trim(),
+      wallTypes: walls, styleTags: styles,
+      notes: document.getElementById('gymNotes').value.trim(),
+    };
+    if (id) { updateDoc('gyms', id, data); toast('已更新'); }
+    else { createDoc('gyms', { ...data, visitCount: 0, lastVisitAt: '', isFavorite: false }); toast('已添加'); }
+    this.closeModal();
+    this.navigate('gyms');
+  },
+  toggleGymFav(id) {
+    const g = getGym(id);
+    if (g) updateDoc('gyms', id, { isFavorite: !g.isFavorite });
+    this.navigate('gyms');
+  },
+  deleteGymFlow(id) {
+    confirmModal('删除该岩馆？历史会话记录仍会保留（冗余存有馆名）。', () => { deleteDoc('gyms', id); toast('已删除'); this.navigate('gyms'); }, '确认删除', true);
+  },
+
+  /* ============ 我的页 ============ */
+  renderProfile(body) {
+    const st = db.settings;
+    const ov = overallStats();
+    syncBadges();
+    const unlockedKeys = Object.keys(db.badges || {});
+    const badges = BADGE_DEFS.map((b) => ({ ...b, unlocked: unlockedKeys.includes(b.key) }));
+    const activeShoes = db.shoes.filter((s) => s.status === 'active');
+    const goals = db.goals.slice().sort((a, b) => Number(a.status === 'active') - Number(b.status === 'active'));
+    refreshGoalProgress();
+    body.innerHTML = `
+      <div class="card">
+        <div class="card-title"><span>👤 个人档案</span></div>
+        <div class="grid grid-stats mb-16">
+          <div><div class="stat-num">${ov.climbDays}</div><div class="stat-label">攀爬天数</div></div>
+          <div><div class="stat-num">${ov.routeCount}</div><div class="stat-label">总线路</div></div>
+          <div><div class="stat-num txt-green">${ov.sentCount}</div><div class="stat-label">完攀</div></div>
+          <div><div class="stat-num">${ov.venueCount}</div><div class="stat-label">去过的岩馆</div></div>
+        </div>
+        <div class="field"><label>昵称</label><input class="input" id="profileName" value="${escapeHTML(st.profile.name || '')}" placeholder="给自己起个攀岩名"></div>
+        <div class="grid grid-3">
+          <div class="field"><label>默认等级体系</label><select class="select" id="profileSys">
+            ${Object.entries(SYS_LABEL).map(([k, v]) => `<option value="${k}" ${st.preferredGradeSystem === k ? 'selected' : ''}>${v}</option>`).join('')}
+          </select></div>
+          <div class="field"><label>默认鞋款</label><select class="select" id="profileShoe">
+            <option value="">不设默认</option>
+            ${activeShoes.map((s) => `<option value="${s._id}" ${st.defaultShoeId === s._id ? 'selected' : ''}>${escapeHTML(s.brand)} ${escapeHTML(s.model)}</option>`).join('')}
+          </select></div>
+          <div class="field"><label>快速记录模式</label><select class="select" id="profileQuick">
+            <option value="true" ${st.quickRecordMode ? 'selected' : ''}>开启（3步流）</option>
+            <option value="false" ${!st.quickRecordMode ? 'selected' : ''}>关闭</option>
+          </select></div>
+        </div>
+        <div class="row"><button class="btn btn-primary" data-action="profile-save">保存设置</button></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>🎯 目标管理</span><span class="link" data-action="open-goal-form">＋ 新建目标</span></div>
+        ${goals.length ? goals.map((g) => {
+          const pct = Math.min(100, Math.round(((g.currentValue || 0) / (g.targetValue || 1)) * 100));
+          return `<div class="list-item">
+            <div class="grow">
+              <div class="t-bold">${escapeHTML(g.title)} ${g.status === 'completed' ? '<span class="tag tag-green">已完成</span>' : ''} ${g.status === 'archived' ? '<span class="tag tag-gray">已归档</span>' : ''}</div>
+              <div class="tiny muted">${g.metric} ${g.targetValue ? '· 目标 ' + g.targetValue : ''}${g.deadline ? ' · 截止 ' + g.deadline : ''}</div>
+              <div class="progress mt-8"><span style="width:${pct}%"></span></div>
+            </div>
+            <span class="tiny t-bold">${g.currentValue || 0}/${g.targetValue || ''}</span>
+          </div>`;
+        }).join('') : '<div class="empty">暂无目标</div>'}
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>🏅 成就徽章</span><span class="sub">${unlockedKeys.length}/${BADGE_DEFS.length} 已解锁</span></div>
+        <div class="badge-grid">
+          ${badges.map((b) => `<div class="badge-card ${b.unlocked ? '' : 'locked'}">
+            <div class="b-ico">${b.icon}</div><div class="b-name">${b.name}</div><div class="b-desc">${b.desc}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>🗄️ 数据管理</span></div>
+        <div class="grid grid-2">
+          <button class="btn btn-ghost" data-action="export-csv">导出 CSV（线路明细）</button>
+          <button class="btn btn-ghost" data-action="export-json">导出 JSON（全量备份）</button>
+          <button class="btn btn-primary" data-action="month-report">生成月度报告图</button>
+          <button class="btn btn-danger-soft" data-action="profile-reset">清空全部数据</button>
+        </div>
+        <div class="tiny muted mt-12">数据保存在浏览器 localStorage，仅本机可见。建议定期导出 JSON 备份。</div>
+      </div>`;
+  },
+
+  saveProfile() {
+    const st = db.settings;
+    st.profile.name = document.getElementById('profileName').value.trim();
+    st.preferredGradeSystem = document.getElementById('profileSys').value;
+    st.defaultShoeId = document.getElementById('profileShoe').value;
+    st.quickRecordMode = document.getElementById('profileQuick').value === 'true';
+    saveDB();
+    toast('设置已保存');
+  },
+
+  openGoalForm() {
+    this.modal(`
+      <div class="modal-head"><h3>新建目标</h3><button class="modal-close" data-action="close-modal">✕</button></div>
+      <div class="modal-body">
+        <div class="field"><label>目标描述<span class="req">*</span></label><input class="input" id="goalTitle" placeholder="如：本月完成 3 条 V5"></div>
+        <div class="grid grid-2">
+          <div class="field"><label>指标</label><select class="select" id="goalMetric">
+            <option value="count">完攀条数</option><option value="grade">达成特定等级</option><option value="frequency">攀爬会话次数</option><option value="custom">自定义</option>
+          </select></div>
+          <div class="field"><label>目标值</label><input class="input" type="number" id="goalTarget" min="1" value="1"></div>
+        </div>
+        <div class="grid grid-2">
+          <div class="field"><label>目标等级（指标=达成等级时）</label><input class="input" id="goalGrade" placeholder="如 V5"></div>
+          <div class="field"><label>截止日期</label><input class="input" type="date" id="goalDeadline"></div>
+        </div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-soft" data-action="close-modal">取消</button><button class="btn btn-primary" data-action="save-goal">创建</button></div>`);
+  },
+  saveGoal() {
+    const title = document.getElementById('goalTitle').value.trim();
+    if (!title) return toast('请填写目标描述');
+    const metric = document.getElementById('goalMetric').value;
+    const grade = document.getElementById('goalGrade').value.trim();
+    createDoc('goals', {
+      title, type: document.getElementById('goalDeadline').value ? 'short' : 'long',
+      metric, grade: metric === 'grade' ? grade : '',
+      gradeSystem: metric === 'grade' ? (grade.toUpperCase().startsWith('V') || /^[0-9]/.test(grade) && !grade.includes('.') ? (grade.includes('5.1') ? 'yds' : 'v') : db.settings.preferredGradeSystem) : db.settings.preferredGradeSystem,
+      targetValue: Number(document.getElementById('goalTarget').value) || 1,
+      currentValue: 0, deadline: document.getElementById('goalDeadline').value,
+      status: 'active',
+    });
+    refreshGoalProgress();
+    toast('目标已创建');
+    this.closeModal();
+    this.navigate('profile');
+  },
+
+  resetAll() {
+    confirmModal('清空全部数据、回到从 0 开始？此操作不可撤销。', () => {
+      resetDB();
+      toast('已清空，开始搭建你的日志吧');
+      this.navigate('home');
+    }, '确认清空', true);
+  },
+
+  /* ============ 导出 ============ */
+  exportCSV() { downloadFile(`climbing-log-${todayStr()}.csv`, exportCSV(), 'text/csv'); toast('CSV 已下载'); },
+  exportJSON() { downloadFile(`climbing-log-backup-${todayStr()}.json`, JSON.stringify(exportAll(), null, 2), 'application/json'); toast('JSON 备份已下载'); },
+
+  /* ============ 月度报告 ============ */
+  openMonthReport() {
+    const months = [...new Set(db.sessions.map((s) => (s.date || '').slice(0, 7)))].sort().reverse();
+    const cur = months[0] || currentMonth();
+    this._reportMonth = cur;
+    this.modal(`
+      <div class="modal-head"><h3>生成月度报告</h3><button class="modal-close" data-action="close-modal">✕</button></div>
+      <div class="modal-body">
+        <div class="chips mb-16" id="reportMonths">
+          ${months.map((m) => `<button class="chip ${m === cur ? 'active' : ''}" data-m="${m}">${fmt.monthCn(m)}</button>`).join('') || '<span class="muted">暂无数据</span>'}
+        </div>
+        <div id="reportPreview"></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-soft" data-action="close-modal">关闭</button><button class="btn btn-primary" data-action="report-download">下载 PNG</button></div>`);
+    document.querySelectorAll('#reportMonths .chip').forEach((c) => c.addEventListener('click', () => {
+      document.querySelectorAll('#reportMonths .chip').forEach((x) => x.classList.remove('active'));
+      c.classList.add('active');
+      this._reportMonth = c.dataset.m;
+      this.renderReportPreview();
+    }));
+    this.renderReportPreview();
+  },
+  reportData(month) {
+    const sessions = db.sessions.filter((s) => (s.date || '').startsWith(month));
+    const ids = new Set(sessions.map((s) => s._id));
+    const routes = db.routes.filter((r) => ids.has(r.sessionId));
+    const sent = routes.filter((r) => r.completion === 'flash' || r.completion === 'redpoint');
+    const flashN = routes.filter((r) => r.completion === 'flash').length;
+    const gradeMap = {};
+    sent.forEach((r) => { gradeMap[r.grade] = (gradeMap[r.grade] || 0) + 1; });
+    const gymMap = {};
+    sessions.forEach((s) => { gymMap[s.gymName] = (gymMap[s.gymName] || 0) + 1; });
+    const shoeMap = {};
+    sessions.forEach((s) => { if (s.shoeName) shoeMap[s.shoeName] = (shoeMap[s.shoeName] || 0) + 1; });
+    const maxV = sent.reduce((best, r) => {
+      const v = gradeValue(r.grade, r.gradeSystem);
+      return v !== null && v > best.v ? { v, grade: r.grade } : best;
+    }, { v: -Infinity, grade: '' });
+    const highlights = [];
+    if (sessions.length >= 4) highlights.push(`本月出勤 ${sessions.length} 个会话，运动状态稳定 🧗`);
+    if (sent.length >= 8) highlights.push(`完攀 ${sent.length} 条线路，状态火热 🔥`);
+    if (flashN >= 2) highlights.push(`Flash ${flashN} 条线路，读线出色 ⚡`);
+    if (maxV.grade) highlights.push(`最高完攀等级 ${maxV.grade} 🏆`);
+    return { month, sessions, routes, sent, flashN, gradeMap, gymMap, shoeMap, maxV: maxV.grade || '—', highlights: highlights.length ? highlights : ['坚持记录，进步就在复盘里 💪'] };
+  },
+  renderReportPreview() {
+    const month = this._reportMonth;
+    const d = this.reportData(month);
+    const container = document.getElementById('reportPreview');
+    if (!container) return;
+    const gradeRows = Object.entries(d.gradeMap).sort((a, b) => (gradeValue(a[0], 'v') || 0) - (gradeValue(b[0], 'v') || 0)).slice(0, 6);
+    const gymRows = Object.entries(d.gymMap).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    container.innerHTML = `
+      <div style="background:#2B2B34;border-radius:16px;padding:24px;color:#fff;">
+        <div style="font-size:20px;font-weight:800;">🧗 攀岩日志月度报告</div>
+        <div style="font-size:12px;color:#A9A9B3;margin-top:4px;">${fmt.monthCn(month)}</div>
+        <div style="display:flex;gap:12px;margin-top:16px;flex-wrap:wrap;">
+          ${[[d.sessions.length, '会话'], [d.routes.length, '线路'], [d.sent.length, '完攀'], [d.maxV, '最高等级']].map(([v, l]) => `<div style="background:rgba(255,255,255,.08);border-radius:10px;padding:10px 14px;flex:1;min-width:90px;text-align:center;"><div style="font-size:20px;font-weight:800;color:#FF8A3D;">${v}</div><div style="font-size:11px;color:#A9A9B3;">${l}</div></div>`).join('')}
+        </div>
+        ${gradeRows.length ? `<div style="margin-top:16px;"><div style="font-size:12px;color:#A9A9B3;">完攀等级分布</div>${gradeRows.map(([g, n]) => `<div style="display:flex;align-items:center;margin-top:6px;"><span style="width:52px;font-size:12px;">${g}</span><div class="progress grow" style="background:rgba(255,255,255,.15);"><span style="width:${Math.min(100, n / Math.max(...gradeRows.map((x) => x[1])) * 100)}%;"></span></div><span style="width:30px;text-align:right;font-size:12px;color:#FF8A3D;">${n}</span></div>`).join('')}</div>` : ''}
+        ${gymRows.length ? `<div style="margin-top:16px;"><div style="font-size:12px;color:#A9A9B3;">常去地点</div><div style="font-size:13px;margin-top:6px;">${gymRows.map(([n, c]) => `${escapeHTML(n)} ×${c}`).join(' · ')}</div></div>` : ''}
+        <div style="margin-top:16px;font-size:13px;line-height:1.8;color:#FFD9C4;">${d.highlights.map((h) => '· ' + h).join('<br>')}</div>
+        <div style="margin-top:16px;font-size:10px;color:#666;">由攀岩日志 Web 生成 · ${todayStr()}</div>
+      </div>`;
+  },
+  downloadReport() {
+    const canvas = document.getElementById('posterCanvas');
+    const ctx = canvas.getContext('2d');
+    const d = this.reportData(this._reportMonth);
+    ctx.clearRect(0, 0, 600, 900);
+    // 背景
+    const grad = ctx.createLinearGradient(0, 0, 600, 900);
+    grad.addColorStop(0, '#2B2B34'); grad.addColorStop(1, '#1A1A22');
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, 600, 900);
+    // 标题
+    ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 34px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('🧗 攀岩日志月度报告', 40, 70);
+    ctx.fillStyle = '#A9A9B3'; ctx.font = '15px sans-serif';
+    ctx.fillText(fmt.monthCn(this._reportMonth), 40, 100);
+    // 统计卡
+    const cards = [[d.sessions.length, '会话'], [d.routes.length, '线路'], [d.sent.length, '完攀'], [d.maxV, '最高等级']];
+    const cardW = 124, gap = 10, startX = 40;
+    cards.forEach(([v, l], i) => {
+      const x = startX + i * (cardW + gap);
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.beginPath(); ctx.roundRect(x, 130, cardW, 86, 12); ctx.fill();
+      ctx.fillStyle = '#FF8A3D'; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(String(v), x + cardW / 2, 172);
+      ctx.fillStyle = '#A9A9B3'; ctx.font = '13px sans-serif';
+      ctx.fillText(l, x + cardW / 2, 198);
+    });
+    // 等级分布
+    let y = 260;
+    const gradeRows = Object.entries(d.gradeMap).sort((a, b) => (gradeValue(a[0], 'v') || 0) - (gradeValue(b[0], 'v') || 0)).slice(0, 5);
+    if (gradeRows.length) {
+      ctx.fillStyle = '#A9A9B3'; ctx.font = '14px sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText('完攀等级分布', 40, y);
+      const maxN = Math.max(...gradeRows.map((x) => x[1]));
+      gradeRows.forEach(([g, n]) => {
+        y += 30;
+        ctx.fillStyle = '#FFFFFF'; ctx.font = '14px sans-serif';
+        ctx.fillText(g, 40, y);
+        ctx.fillStyle = '#FF8A3D';
+        const bw = 380 * n / maxN;
+        ctx.beginPath(); ctx.roundRect(100, y - 12, bw, 16, 8); ctx.fill();
+        ctx.fillStyle = '#FF8A3D'; ctx.font = 'bold 13px sans-serif';
+        ctx.fillText(String(n), 100 + bw + 8, y + 2);
+      });
+      y += 16;
+    }
+    // 地点
+    const gymRows = Object.entries(d.gymMap).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    if (gymRows.length) {
+      y += 12;
+      ctx.fillStyle = '#A9A9B3'; ctx.font = '14px sans-serif';
+      ctx.fillText('常去地点', 40, y);
+      y += 6;
+      ctx.fillStyle = '#FFFFFF'; ctx.font = '14px sans-serif';
+      ctx.fillText(gymRows.map(([n, c]) => `${n} ×${c}`).join('  ').slice(0, 26), 40, y + 26);
+    }
+    // 高亮
+    y += 60;
+    ctx.fillStyle = '#FFD9C4'; ctx.font = '14px sans-serif';
+    d.highlights.slice(0, 3).forEach((h) => { ctx.fillText('· ' + h.slice(0, 22), 40, y); y += 28; });
+    // 页脚
+    ctx.fillStyle = '#66666E'; ctx.font = '11px sans-serif';
+    ctx.fillText('由攀岩日志 Web 生成 · ' + todayStr(), 40, 870);
+    // 下载
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = `climbing-report-${this._reportMonth}.png`;
+    document.body.appendChild(a); a.click(); a.remove();
+    toast('报告图片已下载');
+  },
+
+  /* ---------- 额外动作（map 之外的扩展） ---------- */
+  extraActions: {
+    'quick-gear': (d) => {
+      const q = App.quick;
+      const i = q.gearIds.indexOf(d.id);
+      if (i >= 0) q.gearIds.splice(i, 1); else q.gearIds.push(d.id);
+      App.quickRender();
+    },
+    'save-resole': () => App.saveResole(),
+    'save-review': () => App.saveReview(),
+    'save-goal': () => App.saveGoal(),
+    'open-goal-form': () => App.openGoalForm(),
+    'seed-one-example': () => {
+      seedDemo();
+      App.navigate('home');
+      toast('已加载 1 条示例，可在「我的」清空后从 0 开始');
+    },
+    'jump-month': (d) => {
+      if (!d.month) return toast('请选择月份');
+      const list = db.sessions.filter((s) => (s.date || '').startsWith(d.month));
+      toast(`该月共 ${list.length} 个会话`);
+    },
+  },
+
+  /* ---------- 路线等级微调 ---------- */
+};
+
+/* ============ 全局辅助 ============ */
+function bumpGrade(grade, delta, system) {
+  const list = GRADES[system] || GRADES.v;
+  const idx = list.indexOf(grade);
+  if (idx < 0) return grade;
+  const next = Math.max(0, Math.min(list.length - 1, idx + delta));
+  return list[next];
+}
+
+// 页面内联事件桥（modal DOM 里用 oninput/onchange 触发）
+window.__gymSearch = (v) => {
+  const cards = document.querySelectorAll('#qGymList .gym-card');
+  const kw = (v || '').trim().toLowerCase();
+  cards.forEach((c) => {
+    c.style.display = (!kw || c.textContent.toLowerCase().includes(kw)) ? '' : 'none';
+  });
+};
+window.__qDate = (v) => { if (App.quick) App.quick.date = v; };
+window.__qTime = (v) => { if (App.quick) App.quick.timeSlot = v; };
+window.__qFeeling = (v) => { if (App.quick) App.quick.feeling = v; };
+
+// 线路编辑器内的 chip 交互（完成方式/风格）——通过事件委托处理
+document.addEventListener('click', (e) => {
+  const chip = e.target.closest('.qr-comp');
+  if (chip) {
+    document.querySelectorAll(`.qr-comp[data-i="${chip.dataset.i}"]`).forEach((c) => c.classList.remove('active'));
+    chip.classList.add('active');
+    return;
+  }
+  const s = e.target.closest('.qr-style');
+  if (s) { s.classList.toggle('active'); return; }
+});
+
+// 初始化
+document.addEventListener('DOMContentLoaded', () => {
+  App.init();
+  // 跨天时自动重渲染当前页（服役天数、今日概览等随日期自动刷新）
+  if (!window.__climbDateWatcher) {
+    let lastDay = todayStr();
+    window.__climbDateWatcher = setInterval(() => {
+      const now = todayStr();
+      if (now !== lastDay) {
+        lastDay = now;
+        toast('新的一天，数据已自动刷新');
+        App.navigate(App.page);
+      }
+    }, 5 * 60 * 1000);
+  }
+});
+
+</script>
+<script type="text/javascript" src="/accessproxy_statics/h5_fp.js" defer></script>
+<script type="text/javascript" src="/accessproxy_statics/wm.js" defer></script>
+</body>
+</html>
