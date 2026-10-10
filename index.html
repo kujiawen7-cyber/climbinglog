@@ -326,6 +326,23 @@ input, select, textarea { font-family: inherit; font-size: 15px; color: var(--ro
   .head-actions .btn-primary::after { content: "＋"; font-size: 18px; }
 }
 
+/* ---------- RPE 点选条 & 推荐卡 ---------- */
+.rpe-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.rpe-dot {
+  width: 34px; height: 34px; border-radius: 50%; border: 2px solid #BBDEFB;
+  background: #fff; color: #1565C0; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .15s; padding: 0; flex: 0 0 auto;
+}
+.rpe-dot:active { transform: scale(0.92); }
+.rpe-dot.in-range { border-color: #2196F3; background: #E3F2FD; font-weight: 800; box-shadow: 0 0 0 3px rgba(33,150,243,.18); }
+.rpe-dot.active { background: #2196F3; border-color: #2196F3; color: #fff; }
+.rpe-rec-card {
+  margin: 0 0 12px; padding: 10px 12px; border-radius: 12px;
+  background: #E3F2FD; border: 1px solid #BBDEFB; color: #0D47A1;
+  font-size: 13px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.rpe-rec-card .btn-sm { padding: 4px 12px; font-size: 12px; border-radius: 8px; }
+
 </style>
 </head>
 <body>
@@ -364,7 +381,7 @@ input, select, textarea { font-family: inherit; font-size: 15px; color: var(--ro
   <!-- 海报画布（隐藏） -->
   <canvas id="posterCanvas" width="600" height="900"></canvas>
 
-<script>
+  <script>
 
 /* Canvas roundRect polyfill（旧版 Safari 兼容） */
 if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
@@ -496,9 +513,9 @@ function shoeRealCost(shoe, resoles) {
   const resole = (resoles || []).reduce((s, r) => s + (Number(r.cost) || 0), 0);
   return { realCost: base + resole, purchase: base, resoleCost: resole, resoleCount: (resoles || []).length };
 }
-function costPerClimb(shoe, resoles) {
+function costPerClimb(shoe, resoles, climbDays) {
   const { realCost } = shoeRealCost(shoe, resoles);
-  const n = Math.max(1, Number(shoe.climbCount) || 0);
+  const n = Math.max(1, climbDays || Number(shoe.climbCount) || 0);
   return Math.round((realCost / n) * 100) / 100;
 }
 function shoeServiceDays(shoe) {
@@ -576,8 +593,117 @@ function confirmModal(msg, onOk, okText = '确认', danger = false) {
 }
 function modalClose(root) { root && root.remove(); }
 
+/* ============ RPE 训练负荷监测 ============ */
+function sessionLoad(session) {
+  const rpe = Number(session.rpe) || 5;
+  const duration = Number(session.duration) || 60;
+  return Math.round(rpe * duration);
+}
+function acuteLoad(sessions, endDate = todayStr()) {
+  const end = new Date(endDate);
+  const start = new Date(end); start.setDate(start.getDate() - 6);
+  const week = sessions.filter((s) => { const d = new Date(s.date); return d >= start && d <= end; });
+  return week.reduce((sum, s) => sum + sessionLoad(s), 0);
+}
+function chronicLoad(sessions, endDate = todayStr()) {
+  const end = new Date(endDate);
+  const start = new Date(end); start.setDate(start.getDate() - 27);
+  const month = sessions.filter((s) => { const d = new Date(s.date); return d >= start && d <= end; });
+  return month.length ? Math.round(month.reduce((sum, s) => sum + sessionLoad(s), 0) / 4) : 0;
+}
+function acRatio(sessions, endDate = todayStr()) {
+  const al = acuteLoad(sessions, endDate);
+  const cl = chronicLoad(sessions, endDate);
+  return cl ? Math.round((al / cl) * 100) / 100 : 0;
+}
+function acRatioLevel(ratio) {
+  if (ratio < 0.8) return { label: '负荷不足', color: 'var(--green)', alert: false };
+  if (ratio <= 1.3) return { label: '负荷适中', color: 'var(--green)', alert: false };
+  if (ratio <= 1.5) return { label: '负荷偏高', color: 'var(--yellow)', alert: true };
+  return { label: '负荷过高', color: 'var(--danger)', alert: true };
+}
+
+/* ---------- AC 比值最小样本量保护（可配置） ---------- */
+/* 业务背景：AC = 急性负荷 AL(近7天) / 慢性负荷 CL(近28天均值)。
+   数据量太少时 CL 分母极小，少量训练就会把比值推得失真（如仅 2 次记录即出现 AC=4「负荷过高」）。
+   因此设最小慢性负荷阈值：CL 低于阈值时不计算/不显示具体比值，UI 统一显示「数据不足」。
+   默认 300 ≈ 28 天内仅 1 次低强度训练（rpe 5 × 60min）。需要更严格/更宽松时直接改这里。 */
+const AC_MIN_CHRONIC_LOAD = 300;
+
+/* AC 比值展示辅助：先做 CL 阈值检查，再决定是否给出具体比值。
+   CL 统一转数值处理，0 / null / undefined / 低于阈值 一律归入 sufficient:false（数据不足）。 */
+function acRatioInfo(sessions, endDate = todayStr()) {
+  const al = acuteLoad(sessions, endDate);
+  const cl = Number(chronicLoad(sessions, endDate)) || 0;
+  const sufficient = cl >= AC_MIN_CHRONIC_LOAD;
+  return {
+    al,
+    cl,
+    threshold: AC_MIN_CHRONIC_LOAD,
+    sufficient,
+    ratio: sufficient ? Math.round((al / cl) * 100) / 100 : null,
+  };
+}
+function rpeWeeklySeries(sessions, weeks = 12) {
+  const end = new Date(todayStr());
+  const res = [];
+  for (let i = weeks - 1; i >= 0; i--) {
+    const wEnd = new Date(end); wEnd.setDate(wEnd.getDate() - i * 7);
+    const wStart = new Date(wEnd); wStart.setDate(wStart.getDate() - 6);
+    const weekSessions = sessions.filter((s) => { const d = new Date(s.date); return d >= wStart && d <= wEnd; });
+    const al = weekSessions.reduce((sum, s) => sum + sessionLoad(s), 0);
+    const cl = chronicLoad(sessions, toDateStr(wEnd));
+    const ratio = cl ? Math.round((al / cl) * 100) / 100 : 0;
+    res.push({ weekStart: toDateStr(wStart), weekEnd: toDateStr(wEnd), al, cl, ratio });
+  }
+  return res;
+}
+function climbingDays(sessions) {
+  return new Set(sessions.map((s) => s.date)).size;
+}
+
+/* ---------- RPE 动态校准：难度 → 推荐区间 ---------- */
+/* 产品口径：V0-V2→1-3 恢复/技术；V3-V5→3-6 中等；V6-V8→5-8 高强度；V9+→7-10 极限。
+   非 V 体系按等级在体系表中的位置归一化到同一区间。 */
+const RPE_RANGE_LABELS = ['', '恢复', '恢复', '恢复', '中等', '中等', '中等', '高强度', '高强度', '极限', '极限'];
+function rpeRangeForGrade(grade, system) {
+  if (!grade) return null;
+  let frac = null;
+  if (system === 'v') {
+    const v = gradeValue(grade, 'v');
+    if (v === null || v < 0) return null;
+    frac = v <= 2 ? 0.15 : v <= 5 ? 0.45 : v <= 8 ? 0.7 : 0.95;
+  } else {
+    const list = GRADES[system] || [];
+    const idx = list.indexOf(grade);
+    if (idx < 0 || list.length < 2) return null;
+    frac = idx / (list.length - 1);
+  }
+  if (frac <= 0.3) return { min: 1, max: 3, label: '恢复/技术' };
+  if (frac <= 0.6) return { min: 3, max: 6, label: '中等强度' };
+  if (frac <= 0.85) return { min: 5, max: 8, label: '高强度' };
+  return { min: 7, max: 10, label: '极限' };
+}
+
+/** 从 routes 中取最高难度，返回推荐区间 + 触发等级；无有效等级返回 null */
+function rpeRecommendation(routes, gradeSystem) {
+  let best = null, bestVal = -Infinity;
+  (routes || []).forEach((r) => {
+    const g = r && r.grade;
+    if (!g) return;
+    const v = gradeValue(g, gradeSystem);
+    const val = v !== null ? v : -Infinity;
+    if (val > bestVal) { bestVal = val; best = g; }
+  });
+  if (!best) return null;
+  const range = rpeRangeForGrade(best, gradeSystem);
+  if (!range) return null;
+  return { min: range.min, max: range.max, label: range.label, grade: best, gradeSystem };
+}
+
+
 </script>
-<script>
+  <script>
 /* ============ data.js — 数据层（localStorage） ============ */
 
 const DB_KEY = 'climbing_log_db_v2';
@@ -601,6 +727,8 @@ function migrateDB(d) {
   (d.sessions || []).forEach((s) => {
     if (typeof s.climbType === 'string') { s.climbType = [s.climbType]; changed = true; }
     if (!Array.isArray(s.climbType) || !s.climbType.length) { s.climbType = ['boulder']; changed = true; }
+    if (s.rpe === undefined) { s.rpe = 5; changed = true; }
+    if (s.duration === undefined) { s.duration = 60; changed = true; }
   });
   (d.routes || []).forEach((r) => { if (!r.gradeSystem) { r.gradeSystem = (d.settings && d.settings.preferredGradeSystem) || 'v'; changed = true; } });
   (d.shoes || []).forEach((sd) => { if (sd.firstUseDate === undefined) { sd.firstUseDate = ''; changed = true; } });
@@ -936,6 +1064,7 @@ function seedOneExample() {
     climbType: ['boulder'], gradeSystem: db.settings.preferredGradeSystem || 'v',
     shoeId: shoe._id, shoeName: shoe.model, gearIds: [gear._id],
     bodyCondition: 'good', feeling: '从 0 开始的第一条记录', notes: '',
+    rpe: 6, duration: 90,
   }, [
     { routeName: '示例线路 01', grade: 'V1', color: '橙', completion: 'flash', attempts: 1, styles: ['balance'], notes: '', gradeSystem: 'v' },
     { routeName: '示例线路 02', grade: 'V2', color: '蓝', completion: 'project', attempts: 3, styles: ['power'], notes: '', gradeSystem: 'v' },
@@ -981,7 +1110,7 @@ function downloadFile(name, content, mime = 'text/plain') {
 loadDB();
 
 </script>
-<script>
+  <script>
 /* ============ charts.js — 零依赖 SVG 图表 ============ */
 
 const CHART_COLORS = ['#E8632A', '#2F6FED', '#2FA17E', '#E8A23D', '#8E6BC7', '#C0524A', '#4FA3C4', '#B8B6AE'];
@@ -1208,7 +1337,7 @@ function bubbleChart(container, data, opts = {}) {
     const r = Math.max(10, Math.min(38, Number(d.size) || 14));
     const c = svgEl('circle', { cx: bx, cy: by, r, fill: d.color || '#2FA17E', opacity: 0.75 });
     const t = svgEl('title', {});
-    t.textContent = `${d.name}：单次成本 ¥${d.y}，服役 ${d.x} 天，评分 ${d.avgRating || '-'}`;
+    t.textContent = `${d.name}：每天成本 ¥${d.y}，服役 ${d.x} 天，评分 ${d.avgRating || '-'}`;
     c.appendChild(t);
     svg.appendChild(c);
     const label = svgEl('text', { x: bx, y: by + 3, 'text-anchor': 'middle', 'font-size': 10, fill: '#fff', 'font-weight': 600 });
@@ -1218,7 +1347,7 @@ function bubbleChart(container, data, opts = {}) {
   container.appendChild(svg);
   const note = document.createElement('div');
   note.className = 'chart-legend';
-  note.innerHTML = '<span>● 横轴=服役天数 · 纵轴=单次成本(越低越好) · 气泡大小=评分</span>';
+  note.innerHTML = '<span>● 横轴=服役天数 · 纵轴=每天成本(越低越好) · 气泡大小=评分</span>';
   container.appendChild(note);
 }
 
@@ -1237,7 +1366,7 @@ function ratingBars(container, items, max = 5) {
 }
 
 </script>
-<script>
+  <script>
 /* ============ app.js — 应用控制器 ============ */
 
 const NAV = [
@@ -1327,7 +1456,7 @@ const App = {
       'quick-prev': () => this.quickPrev(),
       'quick-submit': () => this.quickSubmit(),
       'quick-pick-gym': () => this.quickPickGym(d.id),
-      'quick-type': (d) => {
+      'quick-type': () => {
         const k = d.key || d.type;
         const arr = App.quick.climbType || [];
         const idx = arr.indexOf(k);
@@ -1339,11 +1468,11 @@ const App = {
         const chips = document.querySelectorAll('[data-action="quick-type"]');
         chips.forEach((c) => c.classList.toggle('active', arr.includes(c.dataset.key || c.dataset.type)));
       },
-      'quick-shoe': (d) => {
+      'quick-shoe': () => {
         App.quick.shoeId = d.id;
         document.querySelectorAll('[data-action="quick-shoe"]').forEach((c) => c.classList.toggle('active', c.dataset.id === d.id));
       },
-      'quick-body': (d) => {
+      'quick-body': () => {
         App.quick.bodyCondition = d.key;
         document.querySelectorAll('[data-action="quick-body"]').forEach((c) => c.classList.toggle('active', (c.dataset.key || c.dataset.type) === d.key));
       },
@@ -1375,7 +1504,7 @@ const App = {
       'noop': () => {},
     };
     const fn = map[act] || (App.extraActions ? App.extraActions[act] : null);
-    if (fn) { e.preventDefault(); fn(); }
+    if (fn) { e.preventDefault(); fn(btn, d); }
   },
 
   modal(html, cls = '') {
@@ -1396,7 +1525,7 @@ const App = {
         <div class="muted" style="margin-top:6px;">从 0 开始搭建，数据只保存在你自己的浏览器里</div>
         <div style="margin:26px auto 0;max-width:420px;text-align:left;">
           <div class="list-item"><span style="font-size:18px;font-weight:800;">1</span><div class="grow"><span class="t-bold">添加第一个岩馆/岩场</span><div class="tiny muted">填个名字和地址就能开始记录</div></div></div>
-          <div class="list-item"><span style="font-size:18px;font-weight:800;">2</span><div class="grow"><span class="t-bold">添加攀岩鞋（选填）</span><div class="tiny muted">填品牌、型号和价格，之后自动算单次成本</div></div></div>
+          <div class="list-item"><span style="font-size:18px;font-weight:800;">2</span><div class="grow"><span class="t-bold">添加攀岩鞋（选填）</span><div class="tiny muted">填品牌、型号和价格，之后自动算每天成本</div></div></div>
           <div class="list-item"><span style="font-size:18px;font-weight:800;">3</span><div class="grow"><span class="t-bold">快速记录第一次攀爬</span><div class="tiny muted">选岩馆 → 选鞋 → 记线路，一次搞定</div></div></div>
         </div>
         <div style="max-width:460px;margin:26px auto 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
@@ -1415,6 +1544,9 @@ const App = {
       this.renderHomeEmpty(body);
       return;
     }
+    // CL 低于阈值（AC_MIN_CHRONIC_LOAD，默认 300）时视为数据不足：不显示具体比值、不弹负荷警告
+    const ac = acRatioInfo(db.sessions);
+    const acLvl = ac.sufficient ? acRatioLevel(ac.ratio) : null;
     const month = currentMonth();
     const monthSessions = sessions.filter((s) => (s.date || '').startsWith(month));
     const monthRouteIds = new Set(monthSessions.map((s) => s._id));
@@ -1427,16 +1559,23 @@ const App = {
       .filter((g) => g.status !== 'retired')
       .map((g) => ({ g, rm: gearReminder(g) }))
       .filter((x) => x.rm.level >= 2);
-    const shoesWorn = db.shoes.filter((s) => s.status === 'active').map((s) => ({ s, per: costPerClimb(s, getShoeResoles(s._id)) }));
+    const shoesWorn = db.shoes.filter((s) => s.status === 'active').map((s) => {
+      const days = climbingDays(db.sessions.filter((se) => se.shoeId === s._id));
+      return { s, days, per: costPerClimb(s, getShoeResoles(s._id), days) };
+    });
     const recent = sessions.slice(0, 5).map((s) => ({
       ...s, dateCn: fmt.date(s.date), routeCount: getRoutesOfSession(s._id).length,
     }));
     body.innerHTML = `
+      ${ac.sufficient && acLvl.alert ? `<div class="banner" style="background:${acLvl.color}15;color:${acLvl.color};border:1px solid ${acLvl.color}40;padding:10px 16px;border-radius:12px;margin-bottom:14px;font-weight:700;">⚠️ ${acLvl.label}（AC Ratio ${ac.ratio}）— 建议适当休息</div>` : ''}
       <div class="grid grid-stats">
         <div class="card stat-card"><div class="stat-num txt-brand">${ov.sessionCount}</div><div class="stat-label">累计攀爬次（会话）</div></div>
         <div class="card stat-card"><div class="stat-num">${ov.routeCount}</div><div class="stat-label">累计线路条数</div></div>
         <div class="card stat-card"><div class="stat-num txt-green">${ov.sentCount}</div><div class="stat-label">完攀线路</div></div>
         <div class="card stat-card"><div class="stat-num">${ov.climbDays}</div><div class="stat-label">攀爬天数</div></div>
+        ${ac.sufficient
+          ? `<div class="card stat-card"><div class="stat-num" style="color:${acLvl.color};">${ac.ratio}</div><div class="stat-label">AC 负荷比（7天/28天）</div></div>`
+          : `<div class="card stat-card"><div class="stat-num" style="color:var(--muted);font-size:17px;font-style:italic;">⏳ 数据不足</div><div class="stat-label">AC 负荷比（7天/28天）· 慢性负荷 ${ac.cl}/${ac.threshold}</div></div>`}
       </div>
       <div class="card">
         <div class="card-title"><span>本月概览 · ${fmt.monthCn(month)}</span><span class="sub">${monthSessions.length} 个会话 / ${monthRoutes.length} 条线路</span></div>
@@ -1467,10 +1606,10 @@ const App = {
       </div>
       <div class="card">
         <div class="card-title"><span>👟 在用攀岩鞋</span></div>
-        ${shoesWorn.length ? shoesWorn.map(({ s, per }) => {
+        ${shoesWorn.length ? shoesWorn.map(({ s, days, per }) => {
           const w = wearInfo(s.wearLevel);
-          return `<div class="list-item"><span class="t-bold">${escapeHTML(s.brand)} ${escapeHTML(s.model)}</span><span class="tiny muted">${SHOE_CATEGORY_LABEL[s.category] || ''} · ${s.climbCount}次</span><span class="grow"></span><span class="tiny" style="color:${w.color};font-weight:600;">${w.label} ${s.wearLevel}%</span><span class="tiny muted">¥${per}/次</span></div>`;
-        }).join('') : '<div class="empty">还没添加攀岩鞋，加一双后这里会自动统计单次成本</div>'}
+          return `<div class="list-item"><span class="t-bold">${escapeHTML(s.brand)} ${escapeHTML(s.model)}</span><span class="tiny muted">${SHOE_CATEGORY_LABEL[s.category] || ''} · ${days}天</span><span class="grow"></span><span class="tiny" style="color:${w.color};font-weight:600;">${w.label} ${s.wearLevel}%</span><span class="tiny muted">¥${per}/天</span></div>`;
+        }).join('') : '<div class="empty">还没添加攀岩鞋，加一双后这里会自动统计每天成本</div>'}
       </div>`;
   },
 
@@ -1483,7 +1622,7 @@ const App = {
         <div class="card-title"><span>记录说明</span></div>
         <div style="font-size:13px;color:var(--rock-2);line-height:1.8;">
           一次去岩馆 = 一个「会话」，一个会话内可添加多条线路（如 Flash/Redpoint/尝试中）。
-          保存时会自动关联当日鞋款并累计到该鞋的攀爬次数，同时反写岩馆访问统计。
+          保存时会自动关联当日鞋款并累计到该鞋的攀爬天数，同时反写岩馆访问统计。
         </div>
         <button class="btn btn-primary w-full mt-12" data-action="quick-start">＋ 开始快速记录</button>
       </div>
@@ -1558,6 +1697,9 @@ const App = {
   /* ============ 统计页 ============ */
   renderStats(body) {
     const sys = this._statsSys || db.settings.preferredGradeSystem || 'v';
+    // 与首页同一口径：CL 低于阈值时数据不足，不弹负荷警告
+    const ac = acRatioInfo(db.sessions);
+    const acLvl = ac.sufficient ? acRatioLevel(ac.ratio) : null;
     const ov = overallStats();
     const trend = monthlyTrend(db.sessions);
     const gd = gradeDist(sys, true);
@@ -1566,6 +1708,7 @@ const App = {
     const mls = milestones(sys).slice(-6).reverse();
     const projects = findProjects().slice(0, 4);
     body.innerHTML = `
+      ${ac.sufficient && acLvl.alert ? `<div class="banner" style="background:${acLvl.color}15;color:${acLvl.color};border:1px solid ${acLvl.color}40;padding:10px 16px;border-radius:12px;margin-bottom:14px;font-weight:700;">⚠️ ${acLvl.label}（AC Ratio ${ac.ratio}）— 建议适当休息</div>` : ''}
       <div class="grid grid-stats">
         <div class="card stat-card"><div class="stat-num">${ov.climbDays}</div><div class="stat-label">累计攀爬天数</div></div>
         <div class="card stat-card"><div class="stat-num txt-brand">${ov.routeCount}</div><div class="stat-label">总记录条数</div></div>
@@ -1589,6 +1732,10 @@ const App = {
           <div class="chart-box" id="chartGrade"></div>
           <div class="chart-box" id="chartGradePie"></div>
         </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>RPE 训练负荷趋势（近 12 周）</span></div>
+        <div class="chart-box" id="rpeTrend"></div>
       </div>
       <div class="card">
         <div class="card-title"><span>最常去的岩馆 TOP</span></div>
@@ -1619,6 +1766,10 @@ const App = {
     pieChart(document.getElementById('chartGradePie'), gd.map((g) => ({ label: g.grade, value: g.value })), { title: '等级占比' });
     hBarChart(document.getElementById('chartGym'), tops.map((v) => ({ label: v.name, value: v.count })));
     hBarChart(document.getElementById('chartStyle'), styles.map((s) => ({ label: s.key, value: s.value })));
+    lineChart(document.getElementById('rpeTrend'),
+      rpeWeeklySeries(db.sessions, 12).map((w) => ({ label: (w.weekStart || '').slice(5), al: w.al, cl: w.cl })),
+      [{ key: 'al', name: '急性负荷 AL（7天）', color: '#2196F3' }, { key: 'cl', name: '慢性负荷 CL（28天均）', color: '#90A4AE' }],
+      { area: true });
   },
 
   statsGradeSystem(key) {
@@ -1637,6 +1788,7 @@ const App = {
       shoeId: db.settings.defaultShoeId || (db.shoes.find((x) => x.status === 'active') || {})._id || '',
       gearIds: (db.settings.defaultGearIds || []).slice(),
       bodyCondition: 'good', feeling: '', date: todayStr(), timeSlot: 'evening',
+      rpe: 0, duration: 60, rpeAnchor: null,
       routes: [{ routeName: '', grade: '', color: '', completion: 'flash', attempts: 1, styles: [], notes: '' }],
     };
     this.quickRecent = recentGyms;
@@ -1661,6 +1813,38 @@ const App = {
         ${q.step > 1 ? `<button class="btn btn-soft" data-action="quick-prev">上一步</button>` : ''}
         ${q.step < 3 ? `<button class="btn btn-primary" data-action="quick-next">下一步</button>` : `<button class="btn btn-primary" data-action="quick-submit">完成记录 ✓</button>`}
       </div>`);
+    // RPE 点选条：局部更新，不触发整窗重渲染
+    setTimeout(() => {
+      const bar = document.getElementById('qRpeBar');
+      if (bar && !bar.__bound) {
+        bar.__bound = 1;
+        bar.addEventListener('click', (ev) => {
+          const b = ev.target.closest('.rpe-dot');
+          if (!b || !App.quick) return;
+          App.quick.rpe = Number(b.dataset.rpe);
+          bar.querySelectorAll('.rpe-dot').forEach((x) => x.classList.toggle('active', x === b));
+          const hint = document.getElementById('qRpeHint');
+          if (hint) hint.textContent = `已选 ${App.quick.rpe} · ${RPE_RANGE_LABELS[App.quick.rpe]}`;
+        });
+      }
+      if (App.quick && App.quick.step === 3) App.refreshRpeAnchor();
+    }, 0);
+  },
+
+  /** step3：根据已选最高难度刷新 RPE 推荐卡（只更新卡片 DOM，不重渲染整个 step） */
+  refreshRpeAnchor() {
+    const q = this.quick;
+    if (!q) return;
+    const grades = Array.from(document.querySelectorAll('.qr-grade'));
+    grades.forEach((sel, i) => { if (q.routes[i]) q.routes[i].grade = sel.value; });
+    const rec = rpeRecommendation(q.routes, q.gradeSystem);
+    q.rpeAnchor = rec;
+    const card = document.getElementById('qRpeRecCard');
+    if (card) {
+      card.innerHTML = rec
+        ? `💡 根据最高难度 <b>${escapeHTML(rec.grade)}</b>，推荐 RPE <b>${rec.min}–${rec.max}</b>（${rec.label}）<button type="button" class="btn btn-soft btn-sm" data-action="apply-rpe-rec">采用</button>`
+        : '💡 选择线路难度后，这里会给出 RPE 推荐区间';
+    }
   },
 
   quickStepHtml1() {
@@ -1698,11 +1882,12 @@ const App = {
         <div class="tiny muted">可同时选择多种攀爬方式</div>
       </div>
       <div class="field">
-        <label>今日鞋款（计入该鞋攀爬次数）</label>
+        <label>今日鞋款（计入该鞋攀爬天数）</label>
         ${activeShoes.length ? `<div class="chips">
           ${activeShoes.map((s) => {
-            const per = costPerClimb(s, getShoeResoles(s._id));
-            return `<button class="chip ${q.shoeId === s._id ? 'active' : ''}" data-action="quick-shoe" data-id="${s._id}">${escapeHTML(s.brand)} ${escapeHTML(s.model)} · ${s.climbCount}次 · ¥${per}/次</button>`;
+            const days = climbingDays(db.sessions.filter((se) => se.shoeId === s._id));
+            const per = costPerClimb(s, getShoeResoles(s._id), days);
+            return `<button class="chip ${q.shoeId === s._id ? 'active' : ''}" data-action="quick-shoe" data-id="${s._id}">${escapeHTML(s.brand)} ${escapeHTML(s.model)} · ${days}天 · ¥${per}/天</button>`;
           }).join('')}
         </div>` : '<div class="muted tiny">暂无在用鞋，请先在「装备」页添加</div>'}
       </div>
@@ -1731,6 +1916,20 @@ const App = {
           ${['great', 'good', 'tired', 'injured'].map((b) => `<button class="seg-item ${q.bodyCondition === b ? 'active' : ''}" data-action="quick-body" data-key="${b}">${BODY_LABEL[b]}</button>`).join('')}
         </div>
       </div>
+      <div class="field">
+        <label>RPE 主观疲劳评分 <span class="tiny muted">（1=极轻松 … 10=极限努力，必选）</span></label>
+        <div class="rpe-bar" id="qRpeBar">
+          ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => {
+            const inRange = q.rpeAnchor && n >= q.rpeAnchor.min && n <= q.rpeAnchor.max;
+            return `<button type="button" class="rpe-dot ${q.rpe === n ? 'active' : ''} ${inRange ? 'in-range' : ''}" data-rpe="${n}" title="${n} ${RPE_RANGE_LABELS[n]}">${n}</button>`;
+          }).join('')}
+        </div>
+        <div class="tiny muted" id="qRpeHint">${q.rpe ? `已选 ${q.rpe} · ${RPE_RANGE_LABELS[q.rpe]}` : '点击选择；选好难度后这里会高亮推荐区间'}</div>
+      </div>
+      <div class="field">
+        <label>攀爬时长（分钟，选填，默认 60）</label>
+        <input class="input" type="number" id="qDuration" min="5" max="600" step="5" value="${q.duration || 60}" oninput="window.__qDuration&&window.__qDuration(this.value)">
+      </div>
       <div class="field"><label>体感备注（选填）</label><input class="input" id="qFeeling" placeholder="状态爆棚 / 手指微痛…" oninput="window.__qFeeling&&window.__qFeeling(this.value)"></div>`;
   },
 
@@ -1743,6 +1942,7 @@ const App = {
         <span class="t-bold">♀️ ${q.gymName || ''} · ${climbTypeLabel(q.climbType)} · ${SYS_LABEL[q.gradeSystem]}</span>
         <span class="tiny muted">👟 ${q.shoeName || (activeShoes.length ? '未选' : '')}</span>
       </div>
+      <div class="rpe-rec-card" id="qRpeRecCard">💡 选择线路难度后，这里会给出 RPE 推荐区间</div>
       <div id="qRoutes">
         ${q.routes.map((r, i) => `
           <div class="route-edit">
@@ -1844,6 +2044,10 @@ const App = {
     });
     const validRoutes = q.routes.filter((r) => r.routeName.trim() && r.grade);
     if (!validRoutes.length) return toast('至少填写一条有名称和等级的线路');
+    const rpe = Math.max(1, Math.min(10, Number(q.rpe) || 0));
+    if (!rpe) return toast('请选择 RPE 主观疲劳评分（第 2 步）');
+    const duration = Math.max(5, Math.min(600, Number(document.getElementById('qDuration') ? document.getElementById('qDuration').value : q.duration) || 60));
+    const rec = rpeRecommendation(validRoutes, q.gradeSystem);
     const shoe = getShoe(q.shoeId);
     const sessionData = {
       date: document.getElementById('qDate') ? document.getElementById('qDate').value : q.date,
@@ -1851,6 +2055,8 @@ const App = {
       gymId: q.gymId, gymName: q.gymName, climbType: q.climbType, gradeSystem: q.gradeSystem,
       shoeId: q.shoeId || '', shoeName: shoe ? shoe.model : '',
       gearIds: q.gearIds, bodyCondition: q.bodyCondition,
+      rpe, duration,
+      rpeRecommended: rec ? { min: rec.min, max: rec.max, grade: rec.grade, gradeSystem: rec.gradeSystem } : null,
       feeling: document.getElementById('qFeeling') ? document.getElementById('qFeeling').value : q.feeling,
       notes: document.getElementById('qNotes') ? document.getElementById('qNotes').value : '',
     };
@@ -1865,11 +2071,14 @@ const App = {
 
   /* ============ 装备页 ============ */
   renderGear(body) {
-    const activeShoes = db.shoes.filter((s) => s.status !== 'retired').sort((a, b) => b.climbCount - a.climbCount);
+    // 鞋排序与展示统一用「攀爬天数」口径（同一天多次攀爬只算 1 天）
+    const shoeDays = (shoeId) => climbingDays(db.sessions.filter((se) => se.shoeId === shoeId));
+    const activeShoes = db.shoes.filter((s) => s.status !== 'retired').sort((a, b) => shoeDays(b._id) - shoeDays(a._id));
     const retiredShoes = db.shoes.filter((s) => s.status === 'retired');
     const gearList = db.gear.filter((g) => g.type !== 'shoes');
     const shoeHtml = (s) => {
-      const per = costPerClimb(s, getShoeResoles(s._id));
+      const days = shoeDays(s._id);
+      const per = costPerClimb(s, getShoeResoles(s._id), days);
       const w = wearInfo(s.wearLevel);
 
       const { realCost, resoleCount } = shoeRealCost(s, getShoeResoles(s._id));
@@ -1879,8 +2088,8 @@ const App = {
           <span class="tag ${s.status === 'active' ? 'tag-green' : 'tag-gray'}">${s.status === 'active' ? '在用' : '已退役'}</span>
         </div>
         <div class="row mt-12 wrap" style="gap:14px;">
-          <div><div class="stat-num" style="font-size:20px;">${s.climbCount}</div><div class="stat-label">攀爬次数</div></div>
-          <div><div class="stat-num" style="font-size:20px;color:var(--brand);">¥${per}</div><div class="stat-label">单次成本</div></div>
+          <div><div class="stat-num" style="font-size:20px;">${days}</div><div class="stat-label">攀爬天数</div></div>
+          <div><div class="stat-num" style="font-size:20px;color:var(--brand);">¥${per}</div><div class="stat-label">每天成本</div></div>
           <div><div class="stat-num" style="font-size:20px;">¥${realCost}</div><div class="stat-label">真实成本${resoleCount ? '（含换底）' : ''}</div></div>
         </div>
         <div class="cost-bar"><span class="tiny muted" style="color:${w.color};font-weight:600;">${w.label} ${s.wearLevel}%</span><div class="progress grow"><span style="width:${s.wearLevel}%;${s.wearLevel > 60 ? 'background:var(--brand)' : ''}"></span></div></div>
@@ -1911,7 +2120,7 @@ const App = {
     };
     body.innerHTML = `
       <div class="card">
-        <div class="card-title"><span>👟 攀岩鞋</span><span class="sub">真实成本 = 购价 + Σ换底 → 单次成本实时更新</span></div>
+        <div class="card-title"><span>👟 攀岩鞋</span><span class="sub">真实成本 = 购价 + Σ换底 → 每天成本实时更新</span></div>
         <div class="gear-grid">${activeShoes.map(shoeHtml).join('') || '<div class="empty">暂无用鞋，点击右上角「添加攀岩鞋」</div>'}</div>
         ${retiredShoes.length ? `<div class="mt-16"><div class="card-title" style="font-size:14px;">已退役</div><div class="gear-grid">${retiredShoes.map(shoeHtml).join('')}</div></div>` : ''}
       </div>
@@ -1927,7 +2136,8 @@ const App = {
     if (!s) return;
     const resoles = getShoeResoles(id);
     const { realCost, purchase, resoleCost, resoleCount } = shoeRealCost(s, resoles);
-    const per = costPerClimb(s, resoles);
+    const days = climbingDays(db.sessions.filter((se) => se.shoeId === id));
+    const per = costPerClimb(s, resoles, days);
     const w = wearInfo(s.wearLevel);
     const reviews = db.reviews.filter((r) => r.shoeId === id);
     const gymName = (gid) => { const g = getGym(gid); return g ? g.name : '—'; };
@@ -1935,8 +2145,8 @@ const App = {
       <div class="modal-head"><h3>${escapeHTML(s.brand)} ${escapeHTML(s.model)}</h3><button class="modal-close" data-action="close-modal">✕</button></div>
       <div class="modal-body">
         <div class="grid grid-3 mb-12">
-          <div><div class="stat-num" style="font-size:24px;">${s.climbCount}</div><div class="stat-label">攀爬次数</div></div>
-          <div><div class="stat-num" style="font-size:24px;color:var(--brand);">¥${per}</div><div class="stat-label">单次成本</div></div>
+          <div><div class="stat-num" style="font-size:24px;">${days}</div><div class="stat-label">攀爬天数</div></div>
+          <div><div class="stat-num" style="font-size:24px;color:var(--brand);">¥${per}</div><div class="stat-label">每天成本</div></div>
           <div><div class="stat-num" style="font-size:24px;">¥${realCost}</div><div class="stat-label">真实成本</div></div>
         </div>
         <div class="tiny muted mb-8">购价 ¥${purchase}${resoleCount ? ` · 换底 ${resoleCount} 次共 ¥${resoleCost}` : ''} · ${SHOE_CATEGORY_LABEL[s.category] || ''} · ${s.isDiscontinued ? '已停产绝版' : '在产'} · 磨损 ${w.label} ${s.wearLevel}%</div>
@@ -2064,7 +2274,7 @@ const App = {
   },
 
   retireShoe(id) {
-    confirmModal('确认将该鞋退役？退役后不再计入单次成本排行，但记录保留。', () => {
+    confirmModal('确认将该鞋退役？退役后不再计入每天成本排行，但记录保留。', () => {
       updateDoc('shoes', id, { status: 'retired', retiredDate: todayStr() });
       toast('已退役');
       this.navigate('gear');
@@ -2510,11 +2720,11 @@ const App = {
 
   /* ---------- 额外动作（map 之外的扩展） ---------- */
   extraActions: {
-    'quick-gear': (d) => {
+    'quick-gear': (el, d) => {
       const q = App.quick;
       const i = q.gearIds.indexOf(d.id);
       if (i >= 0) q.gearIds.splice(i, 1); else q.gearIds.push(d.id);
-      App.quickRender();
+      if (el) el.classList.toggle('active', i < 0);
     },
     'save-resole': () => App.saveResole(),
     'save-review': () => App.saveReview(),
@@ -2525,10 +2735,17 @@ const App = {
       App.navigate('home');
       toast('已加载 1 条示例，可在「我的」清空后从 0 开始');
     },
-    'jump-month': (d) => {
+    'jump-month': (el, d) => {
       if (!d.month) return toast('请选择月份');
       const list = db.sessions.filter((s) => (s.date || '').startsWith(d.month));
       toast(`该月共 ${list.length} 个会话`);
+    },
+    'apply-rpe-rec': () => {
+      const q = App.quick;
+      if (!q || !q.rpeAnchor) return;
+      const mid = Math.round((q.rpeAnchor.min + q.rpeAnchor.max) / 2);
+      q.rpe = mid;
+      toast(`已采用推荐 RPE ${mid}（${q.rpeAnchor.min}–${q.rpeAnchor.max}）`);
     },
   },
 
@@ -2555,6 +2772,14 @@ window.__gymSearch = (v) => {
 window.__qDate = (v) => { if (App.quick) App.quick.date = v; };
 window.__qTime = (v) => { if (App.quick) App.quick.timeSlot = v; };
 window.__qFeeling = (v) => { if (App.quick) App.quick.feeling = v; };
+window.__qDuration = (v) => { if (App.quick) App.quick.duration = Math.max(5, Math.min(600, Number(v) || 60)); };
+
+// 线路难度变更 → 刷新 RPE 推荐卡（step3）
+document.addEventListener('change', (e) => {
+  if (e.target && e.target.classList && e.target.classList.contains('qr-grade') && App.quick) {
+    App.refreshRpeAnchor();
+  }
+});
 
 // 线路编辑器内的 chip 交互（完成方式/风格）——通过事件委托处理
 document.addEventListener('click', (e) => {
